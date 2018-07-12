@@ -6,10 +6,16 @@ import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
 import com.alexii.j2v8debugging.R
+import com.eclipsesource.v8.V8
 import dagger.android.AndroidInjection
+
 import kotlinx.android.synthetic.main.activity_example.*
+import javax.inject.Inject
 
 class ExampleActivity : AppCompatActivity() {
+    @Inject
+    lateinit var simpleScriptProvider: SimpleScriptProvider
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
 
@@ -18,7 +24,17 @@ class ExampleActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
 
         fab.setOnClickListener { view ->
-            Snackbar.make(view, "V8 answer comming", Snackbar.LENGTH_LONG)
+            val runtime = V8.createV8Runtime()
+            val scriptName = "hello-world"
+            val jsScript = simpleScriptProvider.getSource(scriptName)
+
+
+            val result = runtime.executeScript(jsScript, scriptName, 0)
+            println("[Alex_v8] $result")
+            runtime.release()
+
+
+            Snackbar.make(view, "V8 answer: $result", Snackbar.LENGTH_LONG)
                     .setAction("V8Action", null).show()
         }
     }
