@@ -6,9 +6,7 @@ group = 'com.alextrotsenko.j2v8-debugger'
 version = '0.1'
 
 android {
-    compileSdkVersion 27
-
-
+    compileSdkVersion 28
 
     defaultConfig {
         minSdkVersion 14
@@ -42,7 +40,7 @@ dependencies {
 
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:support-annotations:27.1.1'
 
     testImplementation 'junit:junit:4.12'
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
