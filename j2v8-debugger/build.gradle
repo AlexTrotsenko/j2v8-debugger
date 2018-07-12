@@ -1,5 +1,9 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'com.github.dcendents.android-maven'
+
+group = 'com.alextrotsenko.j2v8-debugger'
+version = '0.1'
 
 android {
     compileSdkVersion 27
