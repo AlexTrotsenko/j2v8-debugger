@@ -14,12 +14,13 @@ object StethoHelper {
     /**
      * @return Similar to [Stetho.defaultInspectorModulesProvider] but contains [Debugger]
      */
+    @JvmStatic
     fun defaultInspectorModulesProvider(context: Context, scriptSourceProvider: ScriptSourceProvider): InspectorModulesProvider {
         return InspectorModulesProvider { getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider) }
     }
 
     @VisibleForTesting
-    internal fun getDefaultInspectorModulesWithDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider): Iterable<ChromeDevtoolsDomain> {
+    fun getDefaultInspectorModulesWithDebugger(context: Context, scriptSourceProvider: ScriptSourceProvider): Iterable<ChromeDevtoolsDomain> {
         val defaultInspectorModules = getDefaultInspectorModules(context)
 
         //remove work-around when https://github.com/facebook/stetho/pull/600 is merged
