@@ -6,6 +6,8 @@ import com.alexii.j2v8debugging.sample.App
 import com.alexii.j2v8debugging.sample.SimpleScriptProvider
 import dagger.Module
 import dagger.Provides
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import javax.inject.Singleton
 
 /**
@@ -23,5 +25,11 @@ class AppModule {
     @Provides
     fun provideScriptSourceProvider(): ScriptSourceProvider {
         return SimpleScriptProvider()
+    }
+
+    @Singleton
+    @Provides
+    fun provideV8ExecutorService(): ExecutorService {
+        return Executors.newSingleThreadExecutor();
     }
 }

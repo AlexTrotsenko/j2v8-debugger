@@ -31,11 +31,11 @@ class App : Application(), HasActivityInjector {
 
 
         val context = this
-        val build = Stetho.newInitializerBuilder(context)
+        val initializer = Stetho.newInitializerBuilder(context)
                 .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
                 .enableWebKitInspector(StethoHelper.defaultInspectorModulesProvider(context, scriptProvider))
                 .build()
-        Stetho.initialize(build)
+        Stetho.initialize(initializer)
 
         Timber.w("[Alex_Stetho] initialize")
     }
