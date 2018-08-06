@@ -33,6 +33,8 @@ class Debugger(
     /**
      * Executor where V8 scripts are being executed on. Used by [v8Debugger].
      * Needed as @ChromeDevtoolsMethod methods are called on Stetho threads, but not v8 thread.
+     *
+     * XXX: consider using ThreadBound from Facebook with an implementation, which uses Executor.
      */
     private lateinit var v8Executor: ExecutorService
     /** Whether Chrome DevTools is connected to the Stetho (in general) and this debugger (particularly). */
@@ -42,10 +44,17 @@ class Debugger(
         const val TAG = "j2v0-debugger"
     }
 
+    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
+        this.v8Debugger = v8Debugger
+        this.v8Executor = v8Executor
+
+        v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler());
+    }
+
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         scriptSourceProvider.allScriptIds
-                .map { ScriptParsedEvent(it, it) }
+                .map { ScriptParsedEvent(it) }
                 .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
     }
 
@@ -67,13 +76,6 @@ class Debugger(
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
             return GetScriptSourceResponse(Log.getStackTraceString(e))
         }
-    }
-
-    fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
-        this.v8Debugger = v8Debugger
-        this.v8Executor = v8Executor
-
-        v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler());
     }
 
     @ChromeDevtoolsMethod
@@ -142,7 +144,7 @@ class Debugger(
         val scriptId: String?,
 
         @field:JsonProperty @JvmField
-        val url: String?
+        val url: String? = "http://app/$scriptId"
     )
 
     class GetScriptSourceRequest : JsonRpcResult {
