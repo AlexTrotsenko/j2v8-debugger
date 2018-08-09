@@ -216,7 +216,7 @@ class Debugger(
         val scriptId: String,
 
         @field:JsonProperty @JvmField
-        val lineNumbe: Int,
+        val lineNumber: Int,
 
         @field:JsonProperty @JvmField
         val columnNumber: Int
