@@ -18,6 +18,14 @@ import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
+//users of the lib can change this value
+var scriptsDomain = "http://app/"
+
+//move to separate mapper class if conversion logic become complicated and used in many places
+private fun scriptIdToUrl(scriptId: String?) = scriptsDomain + scriptId
+private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsDomain)
+
+
 /**
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  *
@@ -117,7 +125,7 @@ class Debugger(
             try {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
 
-                val breakpointId = v8Debugger.setScriptBreakpoint(request.url!!, request.lineNumber!!)
+                val breakpointId = v8Debugger.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
                 SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.url!!, request.lineNumber!!, request.columnNumber!!))
             } catch (e: Exception) {
@@ -144,7 +152,7 @@ class Debugger(
         val scriptId: String?,
 
         @field:JsonProperty @JvmField
-        val url: String? = "http://app/$scriptId"
+        val url: String? = scriptIdToUrl(scriptId)
     )
 
     class GetScriptSourceRequest : JsonRpcResult {
@@ -172,6 +180,8 @@ class Debugger(
         //unused for now
         @field:JsonProperty @JvmField
         var condition: String? = null
+
+        val scriptId get() = urlToScriptId(url)
     }
 
 
