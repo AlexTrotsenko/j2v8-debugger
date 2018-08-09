@@ -1,6 +1,7 @@
 package com.alexii.j2v8debugger
 
 import android.util.Log
+import com.alexii.j2v8debugger.utils.LogUtils
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.debug.*
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -61,6 +62,8 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+        LogUtils.logMethodCalled()
+
         scriptSourceProvider.allScriptIds
                 .map { ScriptParsedEvent(it) }
                 .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
@@ -68,11 +71,15 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+        LogUtils.logMethodCalled()
+
         //check what's needed to be done here
     }
 
     @ChromeDevtoolsMethod
     fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
+        LogUtils.logMethodCalled()
+
         try {
             val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
 
@@ -88,31 +95,42 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
+
         isDebuggingOn = false
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
+
         isDebuggingOn = true
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
+
         //TBD
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
+
         //TBD
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
         //TBD
     }
 
     @ChromeDevtoolsMethod
     fun setBreakpoint(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
+        LogUtils.logMethodCalled()
+
         //Looks like it's not called at all.
         Log.w(TAG, "Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
 
@@ -121,26 +139,30 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
-        val responseFuture = v8Executor.submit(Callable {
-            try {
+        LogUtils.logMethodCalled()
+
+        try {
+            val responseFuture = v8Executor.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
 
                 val breakpointId = v8Debugger.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
                 SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.url!!, request.lineNumber!!, request.columnNumber!!))
-            } catch (e: Exception) {
-                // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-                Log.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
-                null
-            }
-        })
+            })
 
-        val response = responseFuture.get()
-        return response;
+            val response = responseFuture.get()
+            return response;
+        } catch (e: Exception) {
+            // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
+            Log.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
+            return EmptyResult()
+        }
     }
 
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
+        LogUtils.logMethodCalled()
+
         //TBD
     }
 
