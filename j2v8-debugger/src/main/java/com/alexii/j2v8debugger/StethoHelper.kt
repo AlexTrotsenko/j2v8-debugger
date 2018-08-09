@@ -14,9 +14,12 @@ import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
 object StethoHelper {
-    private var debugger: Debugger? = null
-    var v8DebuggerRef: WeakReference<DebugHandler>? = null
-    var v8ExecutorRef: WeakReference<ExecutorService>? = null
+    var debugger: Debugger? = null
+        private set
+        @VisibleForTesting get
+
+    private var v8DebuggerRef: WeakReference<DebugHandler>? = null
+    private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
     /**
      * @return Similar to [Stetho.defaultInspectorModulesProvider] but contains [Debugger] for [V8]

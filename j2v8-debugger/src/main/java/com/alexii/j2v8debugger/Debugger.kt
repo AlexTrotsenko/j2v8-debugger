@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import android.support.annotation.VisibleForTesting
 import android.util.Log
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.eclipsesource.v8.V8Object
@@ -38,7 +39,10 @@ class Debugger(
     private val dtoMapper: ObjectMapper = ObjectMapper()
     //xxx: consider using WeakReference
     /** Must be called on [v8Executor]]. */
-    private lateinit var v8Debugger: DebugHandler
+    lateinit var v8Debugger: DebugHandler
+        private set
+        @VisibleForTesting get
+
     /**
      * Executor where V8 scripts are being executed on. Used by [v8Debugger].
      * Needed as @ChromeDevtoolsMethod methods are called on Stetho threads, but not v8 thread.
