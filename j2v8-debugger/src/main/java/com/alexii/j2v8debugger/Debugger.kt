@@ -39,7 +39,7 @@ class Debugger(
     private val dtoMapper: ObjectMapper = ObjectMapper()
     //xxx: consider using WeakReference
     /** Must be called on [v8Executor]]. */
-    lateinit var v8Debugger: DebugHandler
+    var v8Debugger: DebugHandler? = null
         private set
         @VisibleForTesting get
 
@@ -49,7 +49,7 @@ class Debugger(
      *
      * XXX: consider using ThreadBound from Facebook with an implementation, which uses Executor.
      */
-    private lateinit var v8Executor: ExecutorService
+    private var v8Executor: ExecutorService? = null
     /** Whether Chrome DevTools is connected to the Stetho (in general) and this debugger (particularly). */
     private var isDebuggingOn = false
 
@@ -146,10 +146,12 @@ class Debugger(
         LogUtils.logMethodCalled()
 
         try {
-            val responseFuture = v8Executor.submit(Callable {
+            validateV8Initialized()
+
+            val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
 
-                val breakpointId = v8Debugger.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
+                val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
                 SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.url!!, request.lineNumber!!, request.columnNumber!!))
             })
@@ -161,6 +163,12 @@ class Debugger(
             Log.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
             return EmptyResult()
         }
+    }
+
+    private fun validateV8Initialized() {
+        if (v8Executor == null || v8Debugger == null) {
+            throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
+        };
     }
 
     @ChromeDevtoolsMethod
