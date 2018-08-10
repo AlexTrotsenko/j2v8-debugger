@@ -67,8 +67,10 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        V8Helper.releaseV8Debugger()
-        v8.release()
+        v8Executor.run {
+            V8Helper.releaseV8Debugger()
+            v8.release()
+        }
     }
 
 
