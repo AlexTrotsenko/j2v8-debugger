@@ -1,8 +1,8 @@
 package com.alexii.j2v8debugger
 
 import android.support.annotation.VisibleForTesting
-import android.util.Log
 import com.alexii.j2v8debugger.utils.LogUtils
+import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.debug.*
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
@@ -26,7 +26,6 @@ var scriptsDomain = "http://app/"
 //move to separate mapper class if conversion logic become complicated and used in many places
 private fun scriptIdToUrl(scriptId: String?) = scriptsDomain + scriptId
 private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsDomain)
-
 
 /**
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
@@ -93,7 +92,7 @@ class Debugger(
         } catch (e: Exception) {
             // Send exception as source code for debugging.
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-            return GetScriptSourceResponse(Log.getStackTraceString(e))
+            return GetScriptSourceResponse(logger.getStackTraceString(e))
         }
     }
 
@@ -136,7 +135,7 @@ class Debugger(
         LogUtils.logMethodCalled()
 
         //Looks like it's not called at all.
-        Log.w(TAG, "Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
+        logger.w(TAG, "Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
 
         return EmptyResult()
     }
@@ -160,7 +159,7 @@ class Debugger(
             return response;
         } catch (e: Exception) {
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-            Log.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
+            logger.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
             return EmptyResult()
         }
     }
@@ -344,7 +343,7 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
             networkPeerManager.sendNotificationToPeers("Debugger.paused", Debugger.PausedEvent(frames))
 
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
-            Log.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
+            logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
         }
     }
 }

@@ -1,9 +1,6 @@
 package com.alexii.j2v8debugger.utils
 
-import android.util.Log
-
 import com.alexii.j2v8debugger.BuildConfig
-
 import com.alexii.j2v8debugger.Debugger.Companion.TAG
 
 /**
@@ -29,9 +26,9 @@ object LogUtils {
         if (!BuildConfig.DEBUG) return;
 
         try {
-            Log.v(TAG, "Calling " + getCallerMethodName())
+            logger.w(TAG, "Calling " + getCallerMethodName())
         } catch (e: Exception) {
-            Log.e(TAG, "Unable to log called method", e)
+            logger.e(TAG, "Unable to log called method", e)
         }
 
     }
