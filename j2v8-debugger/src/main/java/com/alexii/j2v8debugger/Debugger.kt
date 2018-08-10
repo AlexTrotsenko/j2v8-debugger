@@ -31,11 +31,15 @@ private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsDomain)
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  *
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
+ *  Otherwise setting breakpoint, etc. makes no effect.
  */
 class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
 ) : FacebookDebuggerStub() {
-    private val dtoMapper: ObjectMapper = ObjectMapper()
+    var dtoMapper: ObjectMapper = ObjectMapper()
+        @VisibleForTesting set
+        @VisibleForTesting get
+
     //xxx: consider using WeakReference
     /** Must be called on [v8Executor]]. */
     var v8Debugger: DebugHandler? = null
@@ -152,7 +156,7 @@ class Debugger(
 
                 val breakpointId = v8Debugger!!.setScriptBreakpoint(request.scriptId!!, request.lineNumber!!)
 
-                SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.url!!, request.lineNumber!!, request.columnNumber!!))
+                SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
             val response = responseFuture.get()
