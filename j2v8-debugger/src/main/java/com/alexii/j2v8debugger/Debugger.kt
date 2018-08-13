@@ -178,7 +178,18 @@ class Debugger(
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
         LogUtils.logMethodCalled()
 
-        //TBD
+        try {
+            validateV8Initialized()
+
+            val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
+            val res = v8Executor!!.submit { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
+            //get exceptions if any
+            res.get()
+
+        } catch (e: Exception) {
+            // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
+            logger.w(TAG, "Unable to removeBreakpoint: " + params, e)
+        }
     }
 
     /**
@@ -231,6 +242,13 @@ class Debugger(
         @field:JsonProperty @JvmField
         val locations: List<Location> = listOf(location)
     }
+
+    class RemoveBreakpointRequest : JsonRpcResult {
+        //script id
+        @field:JsonProperty @JvmField
+        var breakpointId: String? = null
+    }
+
 
     /**
      * Fired as the result of matching breakpoint in V8, which is was previously set by [Debugger.setBreakpointByUrl]
