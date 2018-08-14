@@ -5,6 +5,7 @@ import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.debug.*
+import com.eclipsesource.v8.debug.mirror.Scope
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.jsonrpc.protocol.EmptyResult
@@ -101,14 +102,14 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun resume(peer: JsonRpcPeer, params: JSONObject) {
+    fun resume(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
         isDebuggingOn = false
     }
 
     @ChromeDevtoolsMethod
-    fun pause(peer: JsonRpcPeer, params: JSONObject) {
+    fun pause(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
         isDebuggingOn = true
@@ -253,13 +254,12 @@ class Debugger(
     /**
      * Fired as the result of matching breakpoint in V8, which is was previously set by [Debugger.setBreakpointByUrl]
      */
-    class PausedEvent @JvmOverloads constructor(
-            @field:JsonProperty @JvmField
-            val callFrames: List<CallFrame>,
+    data class PausedEvent @JvmOverloads constructor(
+        @field:JsonProperty @JvmField
+        val callFrames: List<CallFrame>,
 
-            //xxx: check what's exactly needed here
-            @field:JsonProperty @JvmField
-            val reason: String = "ambiguous"
+        @field:JsonProperty @JvmField
+        val reason: String = "other"
     )
 
     //Not yet implemented method (check if it's required) :
@@ -276,7 +276,7 @@ class Debugger(
     // .setSkipAllPauses
     // .setVariableValue
 
-    class Location(
+    data class Location(
         @field:JsonProperty @JvmField
         val scriptId: String,
 
@@ -287,7 +287,7 @@ class Debugger(
         val columnNumber: Int
     )
 
-    class CallFrame @JvmOverloads constructor(
+    data class CallFrame @JvmOverloads constructor(
         @field:JsonProperty @JvmField
         val callFrameId: String,
 
@@ -309,7 +309,7 @@ class Debugger(
         val `this`: RemoteObject? = null
     )
 
-    class Scope(
+    data class Scope(
         /** one of: global, local, with, closure, catch, block, script, eval, module. */
         @field:JsonProperty @JvmField
         val type: String,
@@ -324,9 +324,9 @@ class Debugger(
 }
 
 private class V8ToChromeDevToolsBreakHandler : BreakHandler {
-    override fun onBreak(type: DebugHandler.DebugEvent?, state: ExecutionState?, eventData: EventData?, data: V8Object?) {
+    override fun onBreak(event: DebugHandler.DebugEvent?, state: ExecutionState?, eventData: EventData?, data: V8Object?) {
         //XXX: optionally consider adding logging or throwing exceptions
-        if (type != DebugHandler.DebugEvent.Break) return
+        if (event != DebugHandler.DebugEvent.Break) return
         if (eventData == null) return
         if (eventData !is BreakEvent) return
 
@@ -348,17 +348,28 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
 
                         val scopes = (0 until frame.scopeCount).map {
                             val scope = frame.getScope(it)
-                            val scopeTypeString = scope.type.name.toLowerCase(Locale.ENGLISH)
+
+                            val objectClassName =  when (scope.type) {
+                                Scope.ScopeType.Local -> "Object"
+                                Scope.ScopeType.Global -> "Window"
+                                else -> ""
+                            }
+
 
                             //consider using like Runtime.Session.objectForRemote()
                             val remoteObject = RemoteObject()
+                                    //check and use Runtime class here
+                                    .apply { objectId = it.toString()}
+                                    .apply { type = Runtime.ObjectType.OBJECT }
+                                    .apply { className = objectClassName }
+                                    .apply { description = objectClassName }
                             //xxx: check what's exactly needed here, pick UNDEFINED or OBJECT for now
-                            remoteObject.type = Runtime.ObjectType.UNDEFINED
 
+                            val scopeTypeString = scope.type.name.toLowerCase(Locale.ENGLISH)
                             Debugger.Scope(scopeTypeString, remoteObject)
                         }
 
-                        val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptId, scopes)
+                        val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), scopes)
                         callFrame
                     }
 
