@@ -68,6 +68,12 @@ class Debugger(
         v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler());
     }
 
+    private fun validateV8Initialized() {
+        if (v8Executor == null || v8Debugger == null) {
+            throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
+        };
+    }
+
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
@@ -147,6 +153,11 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
+        /**
+         * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
+         *  in order to avoid setting breakpoint to the same location 2nd time
+         *  (if .setBreakpointByUrl() without .removeBreakpoint() is called)
+         */
         LogUtils.logMethodCalled()
 
         try {
@@ -169,14 +180,14 @@ class Debugger(
         }
     }
 
-    private fun validateV8Initialized() {
-        if (v8Executor == null || v8Debugger == null) {
-            throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
-        };
-    }
-
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
+        /**
+         * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
+         *  in order to avoid exception caused by removing breakpoint, which is was set
+         *  (if .setBreakpointByUrl() was not called .removeBreakpoint())
+         */
+
         LogUtils.logMethodCalled()
 
         try {
@@ -359,7 +370,7 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
                             //consider using like Runtime.Session.objectForRemote()
                             val remoteObject = RemoteObject()
                                     //check and use Runtime class here
-                                    .apply { objectId = it.toString()}
+                                    .apply { objectId = it.toString() }
                                     .apply { type = Runtime.ObjectType.OBJECT }
                                     .apply { className = objectClassName }
                                     .apply { description = objectClassName }
@@ -373,7 +384,11 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
                         callFrame
                     }
 
-            networkPeerManager.sendNotificationToPeers("Debugger.paused", Debugger.PausedEvent(frames))
+            val pausedEvent = Debugger.PausedEvent(frames)
+
+            logger.w(Debugger.TAG, "Sending Debugger.paused: $pausedEvent")
+
+            networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
 
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
