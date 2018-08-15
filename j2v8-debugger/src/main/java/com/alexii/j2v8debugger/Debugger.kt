@@ -5,6 +5,7 @@ import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.debug.*
+import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
@@ -54,6 +55,9 @@ class Debugger(
      * XXX: consider using ThreadBound from Facebook with an implementation, which uses Executor.
      */
     private var v8Executor: ExecutorService? = null
+
+    private var connectedPeer: JsonRpcPeer? = null
+
     /** Whether Chrome DevTools is connected to the Stetho (in general) and this debugger (particularly). */
     private var isDebuggingOn = false
 
@@ -65,7 +69,7 @@ class Debugger(
         this.v8Debugger = v8Debugger
         this.v8Executor = v8Executor
 
-        v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler());
+        v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler(::connectedPeer));
     }
 
     private fun validateV8Initialized() {
@@ -77,6 +81,7 @@ class Debugger(
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
+        connectedPeer = peer
 
         scriptSourceProvider.allScriptIds
                 .map { ScriptParsedEvent(it) }
@@ -87,7 +92,9 @@ class Debugger(
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        //check what's needed to be done here
+        connectedPeer = null
+
+        //check what else is needed to be done here
     }
 
     @ChromeDevtoolsMethod
@@ -334,7 +341,7 @@ class Debugger(
     )
 }
 
-private class V8ToChromeDevToolsBreakHandler : BreakHandler {
+private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: () -> JsonRpcPeer?) : BreakHandler {
     override fun onBreak(event: DebugHandler.DebugEvent?, state: ExecutionState?, eventData: EventData?, data: V8Object?) {
         //XXX: optionally consider adding logging or throwing exceptions
         if (event != DebugHandler.DebugEvent.Break) return
@@ -357,30 +364,24 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
 
                         val location = Debugger.Location(scriptId, eventData.sourceLine, eventData.sourceColumn)
 
-                        val scopes = (0 until frame.scopeCount).map {
-                            val scope = frame.getScope(it)
+                        //j2v8 has api to access only local variables. Scope class has no get-, but only .setVariableValue() method
+                        val knowVariables = frame.getKnownVariables()
 
-                            val objectClassName =  when (scope.type) {
-                                Scope.ScopeType.Local -> "Object"
-                                Scope.ScopeType.Global -> "Window"
-                                else -> ""
-                            }
+                        //todo store id and remove on Resume
+                        val storedVariablesId = Runtime.mapObject(currentPeerProvider(), knowVariables)
 
+                        //consider using like Runtime.Session.objectForRemote()
+                        val remoteObject = RemoteObject()
+                                //check and use Runtime class here
+                                .apply { objectId = storedVariablesId.toString() }
+                                .apply { type = Runtime.ObjectType.OBJECT }
+                                .apply { className = "Object" }
+                                .apply { description = "Object" }
 
-                            //consider using like Runtime.Session.objectForRemote()
-                            val remoteObject = RemoteObject()
-                                    //check and use Runtime class here
-                                    .apply { objectId = it.toString() }
-                                    .apply { type = Runtime.ObjectType.OBJECT }
-                                    .apply { className = objectClassName }
-                                    .apply { description = objectClassName }
-                            //xxx: check what's exactly needed here, pick UNDEFINED or OBJECT for now
+                        val scopeName = Scope.ScopeType.Local.name.toLowerCase(Locale.ENGLISH)
+                        val syntheticScope = Debugger.Scope(scopeName, remoteObject)
 
-                            val scopeTypeString = scope.type.name.toLowerCase(Locale.ENGLISH)
-                            Debugger.Scope(scopeTypeString, remoteObject)
-                        }
-
-                        val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), scopes)
+                        val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), listOf(syntheticScope))
                         callFrame
                     }
 
@@ -393,5 +394,15 @@ private class V8ToChromeDevToolsBreakHandler : BreakHandler {
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
         }
+    }
+
+    /**
+     * @return local variables and function arguments if any.
+     */
+    private fun Frame.getKnownVariables(): Map<String, Any> {
+        val args = (0 until argumentCount).associateBy({ getArgumentName(it) }, { getArgumentValue(it).value })
+        val localJsVars = (0 until localCount).associateBy({ getLocalName(it) }, { getLocalValue(it).value })
+
+        return args + localJsVars;
     }
 }

@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
+import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeBase
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -29,6 +30,18 @@ class StethoHelperTest {
     }
 
     @Test
+    fun `returns custom Runtime and no Stetho base Runtime`() {
+        val scriptSourceProviderMock = mock<ScriptSourceProvider> {}
+        val contextMock = mock<Application> {}
+        whenever(contextMock.applicationContext).thenReturn(contextMock)
+
+        val domains = StethoHelper.getDefaultInspectorModulesWithDebugger(contextMock, scriptSourceProviderMock)
+
+        assertTrue("No Debugger present", domains.any { it.javaClass == Runtime::class.java })
+        assertFalse("Stetho Debugger present", domains.any { it.javaClass ==  FacebookRuntimeBase::class.java} )
+    }
+
+    @Test
     fun `initialized when Stetho created before v8`() {
         val scriptSourceProviderMock = mock<ScriptSourceProvider> {}
         val contextMock = mock<Application> {}
@@ -45,6 +58,7 @@ class StethoHelperTest {
         assertTrue(StethoHelper.isStethoAndV8DebuggerFullyInitialized)
     }
 
+    //xxx: check why test is failing if run together with other, but ok when run separately
     @Test
     fun `initialized when v8 created before Stetho`() {
         val v8DebugHandlerMock = mock<DebugHandler>()
