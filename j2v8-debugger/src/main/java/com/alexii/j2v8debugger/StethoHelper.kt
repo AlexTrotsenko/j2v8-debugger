@@ -32,7 +32,7 @@ object StethoHelper {
     }
 
     @JvmOverloads
-    private fun getInspectorModules(context: Context, scriptSourceProvider: ScriptSourceProvider, factory: RuntimeReplFactory? = null): Iterable<ChromeDevtoolsDomain> {
+    fun getInspectorModules(context: Context, scriptSourceProvider: ScriptSourceProvider, factory: RuntimeReplFactory? = null): Iterable<ChromeDevtoolsDomain> {
         return try {
             getDefaultInspectorModulesWithDebugger(context, scriptSourceProvider, factory)
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
