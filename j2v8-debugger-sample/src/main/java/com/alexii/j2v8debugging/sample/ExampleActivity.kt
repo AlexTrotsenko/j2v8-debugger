@@ -5,13 +5,14 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
-import com.alexii.j2v8debugger.StethoHelper
 import com.alexii.j2v8debugger.V8Helper
+import com.alexii.j2v8debugger.releaseDebuggable
 import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_example.*
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Future
 import javax.inject.Inject
 
 class ExampleActivity : AppCompatActivity() {
@@ -22,11 +23,15 @@ class ExampleActivity : AppCompatActivity() {
     @Inject
     lateinit var v8Executor: ExecutorService
 
+    lateinit var v8Future: Future<V8>;
+
     /** Must be called only in v8's thread only. */
-    private val v8: V8 by lazy(::initDebuggableV8)
+    private val v8: V8 by lazy {v8Future.get()}
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
+        v8Future = initDebuggableV8()
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_example)
@@ -46,18 +51,8 @@ class ExampleActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Should be called on V8 specific thread only as well as further calls to v8 itself.
-     */
-    private fun initDebuggableV8(): V8 {
-        V8Helper.enableDebugging()
-
-        val runtime = V8.createV8Runtime()
-
-        val v8Debugger = V8Helper.getV8Debugger(runtime)
-        StethoHelper.initializeWithV8Debugger(v8Debugger, v8Executor)
-
-        return runtime
+    private fun initDebuggableV8(): Future<V8> {
+        return V8Helper.createDebuggableV8Runtime(v8Executor);
     }
 
     override fun onDestroy() {
@@ -67,10 +62,7 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        v8Executor.run {
-            V8Helper.releaseV8Debugger()
-            v8.release()
-        }
+        v8Executor.run { v8.releaseDebuggable() }
     }
 
 
