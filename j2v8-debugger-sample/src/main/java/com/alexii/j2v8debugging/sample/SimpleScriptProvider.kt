@@ -13,11 +13,13 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
 
     override fun getSource(scriptId: String): String {
         val jsScript = ("""
+            |var globalHi = "hi"
+            |
             |function main(payload) {
             |  var hello = 'hello, ';
             |  var world = 'world';
             |
-            |  return hello + world + " with " + payload + " !";
+            |  return globalHi + " and " + hello + world + " with " + payload + " !";
             |}
             |
             |main("simple payload")

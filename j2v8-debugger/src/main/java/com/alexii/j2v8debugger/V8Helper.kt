@@ -100,7 +100,8 @@ object V8Helper {
  * @see V8.release
  * @see releaseV8Debugger
  */
-fun V8.releaseDebuggable() {
+@JvmOverloads
+fun V8.releaseDebuggable(reportMemoryLeaks: Boolean = true) {
     V8Helper.releaseV8Debugger()
-    this.release()
+    this.release(reportMemoryLeaks)
 }
