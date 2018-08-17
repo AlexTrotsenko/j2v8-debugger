@@ -5,10 +5,12 @@ import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
+import com.eclipsesource.v8.V8Value
 import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
 import com.eclipsesource.v8.debug.mirror.ValueMirror
+import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
@@ -417,7 +419,15 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
 
     private fun ValueMirror.toJavaObject(): Any? {
         val v8Object = getValue()
-        val javaObject = V8ObjectUtils.getValue(v8Object)
+
+        val javaObject = V8ObjectUtils.getValue(v8Object) { type, value ->
+            if (type == V8Value.V8_FUNCTION) {
+                // override default skipping of functions
+                value.toString()
+            } else {
+                TypeAdapter.DEFAULT
+            }
+        }
 
         if (v8Object is Releasable) v8Object.release()
         //check if mirror need to released

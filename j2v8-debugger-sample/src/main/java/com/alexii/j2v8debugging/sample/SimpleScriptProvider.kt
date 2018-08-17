@@ -19,10 +19,14 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
             |  var hello = 'hello, ';
             |  var world = 'world';
             |
-            |  return globalHi + " and " + hello + world + " with " + payloadObject.load + " !";
+            |  return globalHi + ' and ' + hello + world + ' with ' + payloadObject.load + ' !';
             |}
             |
-            |main({load: "object based payload", redundantLoad: "this is ignored"})
+            |main({
+            |    load: 'object based payload',
+            |    redundantLoad: 'this is ignored',
+            |    callBack: function testCallBack() { print('Call back!') }
+            |})
         """).trimMargin()
 
         if (scriptId == scriptName) return jsScript
