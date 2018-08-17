@@ -3,10 +3,13 @@ package com.alexii.j2v8debugger
 import android.support.annotation.VisibleForTesting
 import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
+import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
 import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
 import com.eclipsesource.v8.debug.mirror.Scope
+import com.eclipsesource.v8.debug.mirror.ValueMirror
+import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
 import com.facebook.stetho.inspector.jsonrpc.protocol.EmptyResult
@@ -367,7 +370,8 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
                         //j2v8 has api to access only local variables. Scope class has no get-, but only .setVariableValue() method
                         val knowVariables = frame.getKnownVariables()
 
-                        //todo store id and remove on Resume
+                        //todo: release objects by id on Resume when https://github.com/facebook/stetho/pull/614 is implemented.
+                        //When debugger disconnects Runtime's session with stored object will be GC as well.
                         val storedVariablesId = Runtime.mapObject(currentPeerProvider(), knowVariables)
 
                         //consider using like Runtime.Session.objectForRemote()
@@ -382,6 +386,11 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
                         val syntheticScope = Debugger.Scope(scopeName, remoteObject)
 
                         val callFrame = Debugger.CallFrame(it.toString(), frame.function.name, location, scriptIdToUrl(scriptId), listOf(syntheticScope))
+
+                        //clean-up v8 native resources
+                        frame.release()
+                        //xxx: check if Mirror-s need to released (e.g. frame.function)
+
                         callFrame
                     }
 
@@ -399,10 +408,21 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
     /**
      * @return local variables and function arguments if any.
      */
-    private fun Frame.getKnownVariables(): Map<String, Any> {
-        val args = (0 until argumentCount).associateBy({ getArgumentName(it) }, { getArgumentValue(it).value })
-        val localJsVars = (0 until localCount).associateBy({ getLocalName(it) }, { getLocalValue(it).value })
+    private fun Frame.getKnownVariables(): Map<String, Any?> {
+        val args = (0 until argumentCount).associateBy({ getArgumentName(it) }, { getArgumentValue(it).toJavaObject() })
+        val localJsVars = (0 until localCount).associateBy({ getLocalName(it) }, { getLocalValue(it).toJavaObject() })
 
         return args + localJsVars;
+    }
+
+    private fun ValueMirror.toJavaObject(): Any? {
+        val v8Object = getValue()
+        val javaObject = V8ObjectUtils.getValue(v8Object)
+
+        if (v8Object is Releasable) v8Object.release()
+        //check if mirror need to released
+        this.release()
+
+        return javaObject
     }
 }

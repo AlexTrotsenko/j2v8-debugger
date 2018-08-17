@@ -38,6 +38,11 @@ dependencies {
     api 'com.eclipsesource.j2v8:j2v8:4.8.2@aar'
     api 'com.facebook.stetho:stetho:1.5.0'
 
+//    //run tests on mac os x on latest j2v8 version available
+//    //todo update to android versiob when available).
+//    //xxx: check how to pick system, which is used for development/tests.
+//    testImplementation 'com.eclipsesource.j2v8:j2v8_macosx_x86_64:4.6.0'
+//
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'com.android.support:support-annotations:27.1.1'

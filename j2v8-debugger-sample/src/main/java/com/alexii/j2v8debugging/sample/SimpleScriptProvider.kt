@@ -15,14 +15,14 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
         val jsScript = ("""
             |var globalHi = "hi"
             |
-            |function main(payload) {
+            |function main(payloadObject) {
             |  var hello = 'hello, ';
             |  var world = 'world';
             |
-            |  return globalHi + " and " + hello + world + " with " + payload + " !";
+            |  return globalHi + " and " + hello + world + " with " + payloadObject.load + " !";
             |}
             |
-            |main("simple payload")
+            |main({load: "object based payload", redundantLoad: "this is ignored"})
         """).trimMargin()
 
         if (scriptId == scriptName) return jsScript
