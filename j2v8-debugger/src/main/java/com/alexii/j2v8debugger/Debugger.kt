@@ -420,12 +420,12 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
     private fun ValueMirror.toJavaObject(): Any? {
         val v8Object = getValue()
 
+        //xxx consider to provide the way to override adapter by user of the lib.
         val javaObject = V8ObjectUtils.getValue(v8Object) { type, value ->
-            if (type == V8Value.V8_FUNCTION) {
-                // override default skipping of functions
-                value.toString()
-            } else {
-                TypeAdapter.DEFAULT
+            when (type) {
+                V8Value.V8_FUNCTION -> value.toString() // override default skipping of functions
+                V8Value.UNDEFINED -> value.toString() // return "undefined" instead of V8Object.Undefined()
+                else -> TypeAdapter.DEFAULT
             }
         }
 
