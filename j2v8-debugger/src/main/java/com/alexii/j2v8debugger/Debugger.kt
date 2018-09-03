@@ -175,6 +175,8 @@ class Debugger(
          */
         LogUtils.logMethodCalled()
 
+        if (v8ToChromeBreakHandler.suspended) return EmptyResult()
+
         try {
             validateV8Initialized()
 
@@ -204,6 +206,8 @@ class Debugger(
          */
 
         LogUtils.logMethodCalled()
+
+        if (v8ToChromeBreakHandler.suspended) return
 
         try {
             validateV8Initialized()
@@ -353,6 +357,8 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
     //todo: replace with proper v8's debugger .pause() api if any exists: https://github.com/eclipsesource/J2V8/issues/411
     //xxx: replace with java.util.concurrent.Phaser when min supported api will be 21
     private var debuggingLatch = CountDownLatch(1)
+    var suspended = false
+        private set
 
     private var nextDebugAction: StepAction? = null
 
@@ -427,7 +433,9 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
      * Pauses V8 execution. Called from V8 thread.
      */
     private fun pause() {
+        suspended = true
         debuggingLatch.await()
+        suspended = false
     }
 
     /**
