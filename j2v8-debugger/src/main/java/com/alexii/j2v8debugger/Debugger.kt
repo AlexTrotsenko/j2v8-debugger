@@ -40,6 +40,7 @@ private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsDomain)
  *
  * [initialize] must be called before actual debugging (adding breakpoints in Chrome DevTools).
  *  Otherwise setting breakpoint, etc. makes no effect.
+ *  Above is also true for the case when debugger is paused due to pause/resume implementation as thread suspension.
  */
 class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
@@ -135,24 +136,24 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun stepOver(peer: JsonRpcPeer, params: JSONObject) {
+    fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        //TBD
+        v8ToChromeBreakHandler.stepOver()
     }
 
     @ChromeDevtoolsMethod
-    fun stepInto(peer: JsonRpcPeer, params: JSONObject) {
+    fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        //TBD
+        v8ToChromeBreakHandler.stepInto()
     }
 
     @ChromeDevtoolsMethod
-    fun stepOut(peer: JsonRpcPeer, params: JSONObject) {
+    fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        //TBD
+        v8ToChromeBreakHandler.stepOut()
     }
 
     @ChromeDevtoolsMethod
@@ -353,6 +354,8 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
     //xxx: replace with java.util.concurrent.Phaser when min supported api will be 21
     private var debuggingLatch = CountDownLatch(1)
 
+    private var nextDebugAction: StepAction? = null
+
     /**
      * Called on V8 thread and suspends it if breakpoint is hit. [resume] chould be called to restore V8 executioin.
      */
@@ -413,6 +416,8 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
 
             pause()
 
+            nextDebugAction?.let { state.prepareStep(it) }
+
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
         }
@@ -429,6 +434,22 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
      * Resumes V8 execution. Called from Stetho thread.
      */
     fun resume() {
+        resumeWith(null)
+    }
+
+    fun stepOver() {
+        resumeWith(StepAction.STEP_NEXT)
+    }
+
+    fun stepInto() {
+        resumeWith(StepAction.STEP_IN)
+    }
+
+    fun stepOut() {
+        resumeWith(StepAction.STEP_OUT)
+    }
+
+    private fun resumeWith(nextDebugAction: StepAction?) {
         val currentLatch = debuggingLatch
 
         //initialize new latch, which will be used by break handler on next break event.
@@ -436,6 +457,8 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
 
         //release suspended break handler if any
         currentLatch.countDown()
+
+        this.nextDebugAction = nextDebugAction
     }
 
     /**
