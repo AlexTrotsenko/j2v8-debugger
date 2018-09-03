@@ -3,11 +3,13 @@ package com.alexii.j2v8debugger.utils
 import android.support.annotation.VisibleForTesting
 import android.util.Log
 
-var logger = Logger()
+internal var logger = Logger()
     @VisibleForTesting get
     @VisibleForTesting set
 
 class Logger {
+
+    fun i(tag: String, msg: String) = Log.i(tag, msg)
 
     fun w(tag: String, msg: String) = Log.w(tag, msg)
 
