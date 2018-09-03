@@ -24,6 +24,7 @@ import com.facebook.stetho.json.annotation.JsonProperty
 import org.json.JSONObject
 import java.util.*
 import java.util.concurrent.Callable
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
@@ -53,6 +54,9 @@ class Debugger(
         private set
         @VisibleForTesting get
 
+    //xxx: consider encapsulate BreakHandler and DebugHandler into the separate class
+    private val v8ToChromeBreakHandler = V8ToChromeDevToolsBreakHandler(::connectedPeer)
+
     /**
      * Executor where V8 scripts are being executed on. Used by [v8Debugger].
      * Needed as @ChromeDevtoolsMethod methods are called on Stetho threads, but not v8 thread.
@@ -63,9 +67,6 @@ class Debugger(
 
     private var connectedPeer: JsonRpcPeer? = null
 
-    /** Whether Chrome DevTools is connected to the Stetho (in general) and this debugger (particularly). */
-    private var isDebuggingOn = false
-
     companion object {
         const val TAG = "j2v0-debugger"
     }
@@ -74,13 +75,13 @@ class Debugger(
         this.v8Debugger = v8Debugger
         this.v8Executor = v8Executor
 
-        v8Debugger.addBreakHandler(V8ToChromeDevToolsBreakHandler(::connectedPeer));
+        v8Debugger.addBreakHandler(v8ToChromeBreakHandler)
     }
 
     private fun validateV8Initialized() {
         if (v8Executor == null || v8Debugger == null) {
             throw IllegalStateException("Unable to set breakpoint when v8 was not initialized yet")
-        };
+        }
     }
 
     @ChromeDevtoolsMethod
@@ -123,14 +124,14 @@ class Debugger(
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        isDebuggingOn = false
+        v8ToChromeBreakHandler.resume()
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
         LogUtils.logMethodCalled()
 
-        isDebuggingOn = true
+        //check what's needed here
     }
 
     @ChromeDevtoolsMethod
@@ -150,6 +151,7 @@ class Debugger(
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject) {
         LogUtils.logMethodCalled()
+
         //TBD
     }
 
@@ -184,7 +186,7 @@ class Debugger(
             })
 
             val response = responseFuture.get()
-            return response;
+            return response
         } catch (e: Exception) {
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
             logger.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
@@ -347,6 +349,13 @@ class Debugger(
 }
 
 private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: () -> JsonRpcPeer?) : BreakHandler {
+    //todo: replace with proper v8's debugger .pause() api if any exists: https://github.com/eclipsesource/J2V8/issues/411
+    //xxx: replace with java.util.concurrent.Phaser when min supported api will be 21
+    private var debuggingLatch = CountDownLatch(1)
+
+    /**
+     * Called on V8 thread and suspends it if breakpoint is hit. [resume] chould be called to restore V8 executioin.
+     */
     override fun onBreak(event: DebugHandler.DebugEvent?, state: ExecutionState?, eventData: EventData?, data: V8Object?) {
         //XXX: optionally consider adding logging or throwing exceptions
         if (event != DebugHandler.DebugEvent.Break) return
@@ -402,9 +411,31 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
 
             networkPeerManager.sendNotificationToPeers("Debugger.paused", pausedEvent)
 
+            pause()
+
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
             logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
         }
+    }
+
+    /**
+     * Pauses V8 execution. Called from V8 thread.
+     */
+    private fun pause() {
+        debuggingLatch.await()
+    }
+
+    /**
+     * Resumes V8 execution. Called from Stetho thread.
+     */
+    fun resume() {
+        val currentLatch = debuggingLatch
+
+        //initialize new latch, which will be used by break handler on next break event.
+        debuggingLatch = CountDownLatch(1)
+
+        //release suspended break handler if any
+        currentLatch.countDown()
     }
 
     /**
