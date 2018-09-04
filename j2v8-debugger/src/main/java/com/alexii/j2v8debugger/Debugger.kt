@@ -87,99 +87,84 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-        connectedPeer = peer
+        runStethoSafely {
+            connectedPeer = peer
 
-        scriptSourceProvider.allScriptIds
-                .map { ScriptParsedEvent(it) }
-                .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
+            scriptSourceProvider.allScriptIds
+                    .map { ScriptParsedEvent(it) }
+                    .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
+        }
     }
 
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-
-        connectedPeer = null
-
-        //check what else is needed to be done here
+        runStethoSafely {
+            connectedPeer = null
+            //xxx: check if something else is needed to be done here
+        }
     }
 
     @ChromeDevtoolsMethod
     fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
-        LogUtils.logMethodCalled()
+        return runStethoSafely {
+            try {
+                val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
 
-        try {
-            val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
+                val scriptSource = scriptSourceProvider.getSource(request.scriptId!!)
 
-            val scriptSource = scriptSourceProvider.getSource(request.scriptId!!)
-
-            return GetScriptSourceResponse(scriptSource)
-        } catch (e: Exception) {
-            // Send exception as source code for debugging.
-            // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-            return GetScriptSourceResponse(logger.getStackTraceString(e))
+                GetScriptSourceResponse(scriptSource)
+            } catch (e: Exception) {
+                // Send exception as source code for debugging.
+                // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
+                GetScriptSourceResponse(logger.getStackTraceString(e))
+            }
         }
     }
 
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-
-        v8ToChromeBreakHandler.resume()
+        runStethoSafely { v8ToChromeBreakHandler.resume() }
     }
 
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
+        LogUtils.logChromeDevToolsCalled()
 
         //check what's needed here
     }
 
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-
-        v8ToChromeBreakHandler.stepOver()
+        runStethoSafely { v8ToChromeBreakHandler.stepOver() }
     }
 
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-
-        v8ToChromeBreakHandler.stepInto()
+        runStethoSafely { v8ToChromeBreakHandler.stepInto() }
     }
 
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
-        LogUtils.logMethodCalled()
-
-        v8ToChromeBreakHandler.stepOut()
+        runStethoSafely { v8ToChromeBreakHandler.stepOut() }
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpoint(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
-        LogUtils.logMethodCalled()
-
-        //Looks like it's not called at all.
-        logger.w(TAG, "Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
-
-        return EmptyResult()
+    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
+        //Looks like this method should not be called at all.
+        val action: () -> JsonRpcResult? = {
+            throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
+        }
+        return runStethoSafely(action)
     }
 
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
-        /**
-         * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
-         *  in order to avoid setting breakpoint to the same location 2nd time
-         *  (if .setBreakpointByUrl() without .removeBreakpoint() is called)
-         */
-        LogUtils.logMethodCalled()
-
-        if (v8ToChromeBreakHandler.suspended) return EmptyResult()
-
-        try {
-            validateV8Initialized()
-
+        return runStethoAndV8Safely {
+            /**
+             * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
+             *  in order to avoid setting breakpoint to the same location 2nd time
+             *  (if .setBreakpointByUrl() without .removeBreakpoint() is called)
+             */
             val responseFuture = v8Executor!!.submit(Callable {
                 val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
 
@@ -188,38 +173,59 @@ class Debugger(
                 SetBreakpointByUrlResponse(breakpointId.toString(), Location(request.scriptId!!, request.lineNumber!!, request.columnNumber!!))
             })
 
-            val response = responseFuture.get()
-            return response
-        } catch (e: Exception) {
-            // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-            logger.w(TAG, "Unable to setBreakpointByUrl: " + params, e)
-            return EmptyResult()
+            responseFuture.get()
         }
     }
 
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
-        /**
-         * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
-         *  in order to avoid exception caused by removing breakpoint, which is was set
-         *  (if .setBreakpointByUrl() was not called .removeBreakpoint())
-         */
-
-        LogUtils.logMethodCalled()
-
-        if (v8ToChromeBreakHandler.suspended) return
-
-        try {
-            validateV8Initialized()
-
+        runStethoAndV8Safely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
             val res = v8Executor!!.submit { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
             //get exceptions if any
             res.get()
+        }
+    }
 
-        } catch (e: Exception) {
+    /**
+     *  Safe for Stetho - makes sure that no exception is thrown.
+     *  Safe for V8 - makes sure, that v8 initialized and v8 thread is not not paused in debugger.
+     */
+    inline private fun <reified T> runStethoSafely(action: () -> T): T {
+        LogUtils.logChromeDevToolsCalled()
+
+        try {
+            return action()
+        } catch (e: Throwable) { //not Exception as V8 throws Error
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
-            logger.w(TAG, "Unable to removeBreakpoint: " + params, e)
+            logger.w(TAG, "Unable to perform " + LogUtils.getChromeDevToolsMethodName(), e)
+
+            val genericClass = T::class.java
+            return when {
+                JsonRpcResult::class.java.isAssignableFrom(genericClass) -> EmptyResult() as T
+                Unit::class.java.isAssignableFrom(genericClass) -> Unit as T
+                else -> throw IllegalArgumentException("Unsupported return type (by Stetho): " + genericClass)
+            }
+        }
+    }
+
+    /**
+     * Safe for Stetho - makes sure that no exception is thrown.
+     * If any exception then [JsonRpcError] is thrown from method annotated with @ChromeDevtoolsMethod-
+     * Stetho reports broken I/O pipe and Chrome DevTools disconnects.
+     */
+    inline private fun <reified T> runStethoAndV8Safely(action: () -> T): T {
+        return runStethoSafely {
+            validateV8Initialized()
+            valideV8NotSuspended()
+
+            action()
+        }
+    }
+
+    private fun valideV8NotSuspended() {
+        if (v8ToChromeBreakHandler.suspended) {
+            throw IllegalStateException("Can't peform ${LogUtils.getChromeDevToolsMethodName()} while paused in debugger.")
         }
     }
 

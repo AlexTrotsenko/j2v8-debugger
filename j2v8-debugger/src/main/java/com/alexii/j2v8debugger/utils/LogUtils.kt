@@ -2,6 +2,8 @@ package com.alexii.j2v8debugger.utils
 
 import com.alexii.j2v8debugger.BuildConfig
 import com.alexii.j2v8debugger.Debugger.Companion.TAG
+import com.facebook.stetho.inspector.protocol.ChromeDevtoolsDomain
+import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 
 /**
  *
@@ -16,23 +18,37 @@ object LogUtils {
     @JvmStatic
     var enabled = false
 
-    private fun getCallerMethodName(): String {
+    /**
+     * Returns name of the method annotated with @ChromeDevtoolsMethod.
+     * Note: This method is always called from the child of [ChromeDevtoolsDomain]
+     */
+    fun getChromeDevToolsMethodName(): String {
         val stackTraceElements = Thread.currentThread().stackTrace
 
-        val indexBeforeCaller = stackTraceElements.indexOfLast { it.className == this.javaClass.name }
+        val chromeDevtoolsStackTraceElement = stackTraceElements
+                .find {
+                    val clazz = Class.forName(it.className)
+                    isChromeDevToolsClass(clazz) && isChromeDevToolsMethod(clazz, it.methodName)
+                }
 
-        val callerStackTraceElement = stackTraceElements[indexBeforeCaller + 1]
-
-        return callerStackTraceElement.methodName
+        return chromeDevtoolsStackTraceElement?.methodName.orEmpty()
     }
 
-    fun logMethodCalled() {
+    private fun isChromeDevToolsClass(clazz: Class<*>?) = ChromeDevtoolsDomain::class.java.isAssignableFrom(clazz)
+
+    private fun isChromeDevToolsMethod(clazz: Class<*>, methodName: String?): Boolean {
+        val method = clazz.methods.find { method -> method.name == methodName }
+        return method?.isAnnotationPresent(ChromeDevtoolsMethod::class.java) ?: false
+    }
+
+    fun logChromeDevToolsCalled() {
         if (!enabled) return;
 
         try {
-            logger.i(TAG, "Calling " + getCallerMethodName())
+            logger.i(TAG, "Calling " + getChromeDevToolsMethodName())
         } catch (e: Exception) {
             logger.e(TAG, "Unable to log called method", e)
         }
     }
+
 }
