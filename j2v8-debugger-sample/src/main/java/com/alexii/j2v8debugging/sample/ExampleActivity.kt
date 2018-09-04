@@ -45,7 +45,7 @@ class ExampleActivity : AppCompatActivity() {
                 val result = v8.executeScript(jsScript, scriptName, 0)
                 println("[v8 execution result: ] $result")
 
-                Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "V8 answers: $result", Snackbar.LENGTH_SHORT)
                         .setAction("V8Action", null).show()
             }
         }

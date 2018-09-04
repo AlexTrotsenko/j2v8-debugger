@@ -14,7 +14,6 @@ import com.eclipsesource.v8.utils.TypeAdapter
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
-import com.facebook.stetho.inspector.jsonrpc.protocol.EmptyResult
 import com.facebook.stetho.inspector.network.NetworkPeerManager
 import com.facebook.stetho.inspector.protocol.ChromeDevtoolsMethod
 import com.facebook.stetho.inspector.protocol.module.Runtime
@@ -105,7 +104,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult {
+    fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
         return runStethoSafely {
             try {
                 val request = dtoMapper.convertValue(params, GetScriptSourceRequest::class.java)
@@ -149,7 +148,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
+    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult?? {
         //Looks like this method should not be called at all.
         val action: () -> JsonRpcResult? = {
             throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
@@ -158,7 +157,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
+    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult?? {
         return runStethoAndV8Safely {
             /**
              * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
@@ -191,7 +190,7 @@ class Debugger(
      *  Safe for Stetho - makes sure that no exception is thrown.
      *  Safe for V8 - makes sure, that v8 initialized and v8 thread is not not paused in debugger.
      */
-    inline private fun <reified T> runStethoSafely(action: () -> T): T {
+    private fun <T> runStethoSafely(action: () -> T): T? {
         LogUtils.logChromeDevToolsCalled()
 
         try {
@@ -200,12 +199,7 @@ class Debugger(
             // Otherwise If error is thrown - Stetho reports broken I/O pipe and disconnects
             logger.w(TAG, "Unable to perform " + LogUtils.getChromeDevToolsMethodName(), e)
 
-            val genericClass = T::class.java
-            return when {
-                JsonRpcResult::class.java.isAssignableFrom(genericClass) -> EmptyResult() as T
-                Unit::class.java.isAssignableFrom(genericClass) -> Unit as T
-                else -> throw IllegalArgumentException("Unsupported return type (by Stetho): " + genericClass)
-            }
+            return null
         }
     }
 
@@ -214,7 +208,7 @@ class Debugger(
      * If any exception then [JsonRpcError] is thrown from method annotated with @ChromeDevtoolsMethod-
      * Stetho reports broken I/O pipe and Chrome DevTools disconnects.
      */
-    inline private fun <reified T> runStethoAndV8Safely(action: () -> T): T {
+    private fun <T> runStethoAndV8Safely(action: () -> T): T? {
         return runStethoSafely {
             validateV8Initialized()
             valideV8NotSuspended()
