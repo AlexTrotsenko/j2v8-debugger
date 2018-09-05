@@ -95,10 +95,17 @@ class Debugger(
         }
     }
 
+    //todo: figure-out why it's not called when Chrome DevTools is closed
     @ChromeDevtoolsMethod
     override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
         runStethoSafely {
             connectedPeer = null
+            //avoid app being freezed when no debugging happening anymore
+            v8ToChromeBreakHandler.resume()
+            //xxx:  remove breakpoints instead of disabling them
+            v8Executor!!.execute { v8Debugger?.disableAllBreakPoints() }
+
+
             //xxx: check if something else is needed to be done here
         }
     }
@@ -178,11 +185,11 @@ class Debugger(
 
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
-        runStethoAndV8Safely {
+        //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
+        // -> do best effort to remove breakpoint when executor is free
+        runStethoSafely {
             val request = dtoMapper.convertValue(params, RemoveBreakpointRequest::class.java)
-            val res = v8Executor!!.submit { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
-            //get exceptions if any
-            res.get()
+            v8Executor!!.execute { v8Debugger!!.clearBreakPoint(request.breakpointId!!.toInt()) }
         }
     }
 
