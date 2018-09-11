@@ -92,12 +92,12 @@ class Debugger(
             scriptSourceProvider.allScriptIds
                     .map { ScriptParsedEvent(it) }
                     .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
+
+            peer.registerDisconnectReceiver(::disconnect)
         }
     }
 
-    //todo: figure-out why it's not called when Chrome DevTools is closed
-    @ChromeDevtoolsMethod
-    override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+    private fun disconnect() {
         runStethoSafely {
             connectedPeer = null
             //avoid app being freezed when no debugging happening anymore
@@ -108,6 +108,11 @@ class Debugger(
 
             //xxx: check if something else is needed to be done here
         }
+    }
+
+    @ChromeDevtoolsMethod
+    override fun disable(peer: JsonRpcPeer, params: JSONObject?) {
+        //xxx: figure-out why and when this method could be called
     }
 
     @ChromeDevtoolsMethod
