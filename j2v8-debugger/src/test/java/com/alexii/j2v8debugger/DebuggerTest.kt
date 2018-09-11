@@ -2,7 +2,6 @@ package com.alexii.j2v8debugger
 
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.debug.DebugHandler
-import com.facebook.stetho.inspector.jsonrpc.protocol.EmptyResult
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
 import com.nhaarman.mockito_kotlin.*
@@ -92,7 +91,7 @@ class DebuggerTest {
         verifyZeroInteractions(requestMock)
         verifyZeroInteractions(jsonParamsMock)
 
-        assertTrue(response is EmptyResult)
+        assertTrue(response == null)
     }
 
 }
