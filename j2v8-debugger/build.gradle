@@ -29,9 +29,18 @@ android {
         targetCompatibility 1.8
         sourceCompatibility 1.8
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
+    def mockkVersion = '1.8.7'
+    def robolectricVersion = '4.0-alpha-3'
+
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // J2V8 Runtime
@@ -51,6 +60,9 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "com.nhaarman:mockito-kotlin:1.5.0"
     testImplementation 'com.google.guava:guava:26.0-android'
+
+    testImplementation "io.mockk:mockk:$mockkVersion"
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
 
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'

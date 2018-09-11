@@ -1,5 +1,6 @@
 package com.alexii.j2v8debugger
 
+import android.support.annotation.VisibleForTesting
 import com.facebook.stetho.inspector.console.RuntimeReplFactory
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcPeer
 import com.facebook.stetho.inspector.jsonrpc.JsonRpcResult
@@ -15,7 +16,8 @@ import com.facebook.stetho.inspector.protocol.module.Runtime as FacebookRuntimeB
  *  Otherwise setting breakpoint, etc. makes no effect.
  */
 class Runtime(replFactory: RuntimeReplFactory?) : ChromeDevtoolsDomain {
-    val adaptee = FacebookRuntimeBase(replFactory)
+    @VisibleForTesting
+    var adaptee = FacebookRuntimeBase(replFactory)
 
     @ChromeDevtoolsMethod
     fun getProperties(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult {
