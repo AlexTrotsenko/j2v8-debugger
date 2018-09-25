@@ -74,6 +74,15 @@ object StethoHelper {
         bindV8ToChromeDebuggerIfReady()
     }
 
+    /**
+     * Inform Chrome DevTools, that scripts are changed. Currently closes Chrome DevTools.
+     * New content will be displayed when it will be opened again.
+     */
+    fun notifyScriptsChanged() {
+        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
+        debugger?.onScriptsChanged()
+    }
+
     private fun bindV8ToChromeDebuggerIfReady() {
         val chromeDebuggerAttached = debugger != null
 

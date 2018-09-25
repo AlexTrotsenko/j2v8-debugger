@@ -3,8 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.alexii.j2v8debugging.sample.ExampleActivity">
     <item
-        android:id="@+id/action_settings"
+        android:id="@+id/action_scripts_changed"
         android:orderInCategory="100"
-        android:title="@string/action_settings"
+        android:title="@string/action_scripts_changed"
         app:showAsAction="never" />
 </menu>

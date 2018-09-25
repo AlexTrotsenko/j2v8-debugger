@@ -20,6 +20,7 @@ import com.facebook.stetho.inspector.protocol.module.Runtime
 import com.facebook.stetho.inspector.protocol.module.Runtime.RemoteObject
 import com.facebook.stetho.json.ObjectMapper
 import com.facebook.stetho.json.annotation.JsonProperty
+import com.facebook.stetho.websocket.CloseCodes
 import org.json.JSONObject
 import java.util.*
 import java.util.concurrent.Callable
@@ -93,11 +94,11 @@ class Debugger(
                     .map { ScriptParsedEvent(it) }
                     .forEach { peer.invokeMethod("Debugger.scriptParsed", it, null) }
 
-            peer.registerDisconnectReceiver(::disconnect)
+            peer.registerDisconnectReceiver(::onDisconnect)
         }
     }
 
-    private fun disconnect() {
+    private fun onDisconnect() {
         runStethoSafely {
             connectedPeer = null
             //avoid app being freezed when no debugging happening anymore
@@ -108,6 +109,14 @@ class Debugger(
 
             //xxx: check if something else is needed to be done here
         }
+    }
+
+    /**
+     * Invoked when scripts are changed. Currently closes Chrome DevTools.
+     */
+    internal fun onScriptsChanged() {
+        //todo: check if we can "update" scripts already reported with "Debugger.scriptParsed"
+        connectedPeer?.webSocket?.close(CloseCodes.NORMAL_CLOSURE, "on scripts changed");
     }
 
     @ChromeDevtoolsMethod

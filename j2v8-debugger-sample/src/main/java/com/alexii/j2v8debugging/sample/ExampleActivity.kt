@@ -5,6 +5,7 @@ import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import com.alexii.j2v8debugger.StethoHelper
 import com.alexii.j2v8debugger.V8Helper
 import com.alexii.j2v8debugger.releaseDebuggable
 import com.alexii.j2v8debugging.R
@@ -77,7 +78,11 @@ class ExampleActivity : AppCompatActivity() {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.action_scripts_changed -> {
+                simpleScriptProvider.updateTimeToNow()
+                StethoHelper.notifyScriptsChanged()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }

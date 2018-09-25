@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">J2V8DebugExample</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_scripts_changed">Notify Scripts Changed</string>
 </resources>

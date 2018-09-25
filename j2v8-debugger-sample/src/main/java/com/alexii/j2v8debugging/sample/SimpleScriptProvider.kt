@@ -1,6 +1,8 @@
 package com.alexii.j2v8debugging.sample
 
 import com.alexii.j2v8debugger.ScriptSourceProvider
+import java.text.DateFormat
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -8,6 +10,15 @@ import javax.inject.Singleton
 class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
 
     private val scriptName = "hello-world"
+    private lateinit var dateString: String
+
+    init {
+        updateTimeToNow()
+    }
+
+    fun updateTimeToNow() {
+        dateString = DateFormat.getTimeInstance().format(Date())
+    }
 
     override val allScriptIds = listOf(scriptName)
 
@@ -19,7 +30,9 @@ class SimpleScriptProvider @Inject constructor() : ScriptSourceProvider {
             |  var hello = 'hello, ';
             |  var world = 'world';
             |
-            |  return globalHi + ' and ' + hello + world + ' with ' + payloadObject.load + ' !';
+            |  var testReload = '$dateString';
+            |
+            |  return globalHi + ' and ' + hello + world + ' at ' + testReload + ' with ' + payloadObject.load + ' !';
             |}
             |
             |main({
