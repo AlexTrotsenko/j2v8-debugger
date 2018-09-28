@@ -12,6 +12,7 @@ import com.alexii.j2v8debugging.R
 import com.eclipsesource.v8.V8
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_example.*
+import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import javax.inject.Inject
@@ -32,6 +33,7 @@ class ExampleActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AndroidInjection.inject(this)
+        updateUserToRandom()
         v8Future = initDebuggableV8()
 
         super.onCreate(savedInstanceState)
@@ -66,6 +68,11 @@ class ExampleActivity : AppCompatActivity() {
         v8Executor.run { v8.releaseDebuggable() }
     }
 
+    private fun updateUserToRandom() {
+        val newUser = "user" + Random().nextInt(10)
+        //following assumes, that some JS sources are different per user
+        StethoHelper.scriptsPathPrefix = newUser
+    }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -79,6 +86,13 @@ class ExampleActivity : AppCompatActivity() {
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
             R.id.action_scripts_changed -> {
+                simpleScriptProvider.updateTimeToNow()
+                StethoHelper.notifyScriptsChanged()
+                true
+            }
+            R.id.action_user_and_scripts_changed -> {
+                //here user and related scripts should be changed
+                updateUserToRandom()
                 simpleScriptProvider.updateTimeToNow()
                 StethoHelper.notifyScriptsChanged()
                 true

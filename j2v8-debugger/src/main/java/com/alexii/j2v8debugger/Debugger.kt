@@ -29,11 +29,12 @@ import java.util.concurrent.ExecutorService
 import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebuggerStub
 
 //users of the lib can change this value
-var scriptsDomain = "http://app/"
+private val scriptsDomain = "http://app/"
+private val scriptsUrlBase get() = scriptsDomain + StethoHelper.scriptsPathPrefix
 
 //move to separate mapper class if conversion logic become complicated and used in many places
-private fun scriptIdToUrl(scriptId: String?) = scriptsDomain + scriptId
-private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsDomain)
+private fun scriptIdToUrl(scriptId: String?) = scriptsUrlBase + scriptId
+private fun urlToScriptId(url: String?) = url?.removePrefix(scriptsUrlBase)
 
 /**
  * V8 JS Debugger. Name of the class and methods must match names defined in Chrome Dev Tools protocol.

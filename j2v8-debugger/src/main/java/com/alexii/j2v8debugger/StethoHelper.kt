@@ -24,6 +24,19 @@ object StethoHelper {
     private var v8ExecutorRef: WeakReference<ExecutorService>? = null
 
     /**
+     * Changing this prefix lead to changing the path of exposed to Chrome DevTools scripts.
+     * It results in "collapsing" all further parsed scripts under path specified.
+     * For multiple collapsed elements '/' could be used inside the string path.
+     *
+     * E.g. If set to "user1" or "user2" - scripts will be collapsed under "user1" or "user2" segment
+     *  in Chrome DevTools UI.
+     */
+    var scriptsPathPrefix = ""
+        set(value) {
+            field = "/" + value + "/"
+        }
+
+    /**
      * @return Similar to [Stetho.defaultInspectorModulesProvider] but contains [Debugger] for [V8]
      */
     @JvmStatic

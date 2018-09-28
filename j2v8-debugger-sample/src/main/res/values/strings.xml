@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">J2V8DebugExample</string>
     <string name="action_scripts_changed">Notify Scripts Changed</string>
+    <string name="action_change_user_and_scripts">Update user and related scripts</string>
 </resources>
