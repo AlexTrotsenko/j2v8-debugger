@@ -70,7 +70,7 @@ class Debugger(
     private var connectedPeer: JsonRpcPeer? = null
 
     companion object {
-        const val TAG = "j2v0-debugger"
+        const val TAG = "j2v8-debugger"
     }
 
     fun initialize(v8Debugger: DebugHandler, v8Executor: ExecutorService) {
@@ -170,7 +170,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult?? {
+    fun setBreakpoint(peer: JsonRpcPeer?, params: JSONObject?): JsonRpcResult? {
         //Looks like this method should not be called at all.
         val action: () -> JsonRpcResult? = {
             throw IllegalArgumentException("Unexpected Debugger.setBreakpoint() is called by Chrome DevTools: " + params)
@@ -179,7 +179,7 @@ class Debugger(
     }
 
     @ChromeDevtoolsMethod
-    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult?? {
+    fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
         return runStethoAndV8Safely {
             /**
              * xxx: since ScriptBreakPoint does not store script id - keep track of breakpoints manually
