@@ -25,7 +25,7 @@ class ExampleActivity : AppCompatActivity() {
     @Inject
     lateinit var v8Executor: ExecutorService
 
-    lateinit var v8Future: Future<V8>;
+    lateinit var v8Future: Future<V8>
 
     /** Must be called only in v8's thread only. */
     private val v8: V8 by lazy {v8Future.get()}
@@ -55,7 +55,7 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun initDebuggableV8(): Future<V8> {
-        return V8Helper.createDebuggableV8Runtime(v8Executor);
+        return V8Helper.createDebuggableV8Runtime(v8Executor)
     }
 
     override fun onDestroy() {
@@ -65,7 +65,7 @@ class ExampleActivity : AppCompatActivity() {
     }
 
     private fun releaseDebuggableV8() {
-        v8Executor.run { v8.releaseDebuggable() }
+        v8Executor.execute { v8.releaseDebuggable() }
     }
 
     private fun updateUserToRandom() {
