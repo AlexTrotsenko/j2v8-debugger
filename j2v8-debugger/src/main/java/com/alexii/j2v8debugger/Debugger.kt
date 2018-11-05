@@ -447,7 +447,7 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
             nextDebugAction?.let { state.prepareStep(it) }
 
         } catch (e: Throwable) { //v8 throws Error instead of Exception on wrong thread access, etc.
-            logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}")
+            logger.w(Debugger.TAG, "Unable to forward break event to Chrome DevTools at ${eventData.sourceLine}, source: ${eventData.sourceLineText}", e)
         }
     }
 
