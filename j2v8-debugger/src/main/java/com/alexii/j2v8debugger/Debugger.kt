@@ -505,12 +505,16 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
         val v8Object = getValue()
 
         //xxx consider to provide the way to override adapter by user of the lib.
-        val javaObject = V8ObjectUtils.getValue(v8Object) { type, value ->
-            when (type) {
-                V8Value.V8_FUNCTION -> value.toString() // override default skipping of functions
-                V8Value.UNDEFINED -> value.toString() // return "undefined" instead of V8Object.Undefined()
-                else -> TypeAdapter.DEFAULT
+        val javaObject = try {
+            V8ObjectUtils.getValue(v8Object) { type, value ->
+                when (type) {
+                    V8Value.V8_FUNCTION -> value.toString() // override default skipping of functions
+                    V8Value.UNDEFINED -> value.toString() // return "undefined" instead of V8Object.Undefined()
+                    else -> TypeAdapter.DEFAULT
+                }
             }
+        } catch (e: IllegalStateException) {
+            "{unknown value}: " + v8Object
         }
 
         if (v8Object is Releasable) v8Object.release()
