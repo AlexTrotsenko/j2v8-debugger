@@ -5,6 +5,7 @@ import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
+import com.eclipsesource.v8.V8ObjectUtilsBackport
 import com.eclipsesource.v8.V8Value
 import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
@@ -513,6 +514,10 @@ private class V8ToChromeDevToolsBreakHandler(private val currentPeerProvider: ()
                     else -> TypeAdapter.DEFAULT
                 }
             }
+        } catch (e: java.lang.NoClassDefFoundError) {
+            //if J2V8 < 4.8 is used in runtime: TypeAdapter and V8ObjectUtils.getValue() is not yet available
+            // Also no need for catching java.lang.NoSuchMethodError as TypeAdapter() is called 1st.
+            V8ObjectUtilsBackport.getValue(v8Object)
         } catch (e: IllegalStateException) {
             "{unknown value}: " + v8Object
         }
