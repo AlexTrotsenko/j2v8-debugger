@@ -43,6 +43,9 @@ dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
+    //xxx: remove when latest J2V8 version (4.8+) will be released on Mac and Windows:
+    implementation project(':j2v8backport')
+
     // J2V8 Runtime
     api 'com.eclipsesource.j2v8:j2v8:4.8.2@aar'
     api 'com.facebook.stetho:stetho:1.5.0'

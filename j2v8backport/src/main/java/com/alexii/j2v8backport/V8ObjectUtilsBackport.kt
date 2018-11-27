@@ -1,5 +1,6 @@
-package com.eclipsesource.v8
+package com.alexii.j2v8backport
 
+import com.eclipsesource.v8.*
 import com.eclipsesource.v8.utils.V8ObjectUtils
 import com.eclipsesource.v8.utils.typedarrays.*
 
@@ -30,7 +31,6 @@ object V8ObjectUtilsBackport {
      */
     fun getValue(v8Object: Any?): Any? {
         if (v8Object is V8Value?) {
-            val v8Type = v8Object?.v8Type
             return getValueInner(v8Object)
         } else {
             return v8Object
@@ -54,7 +54,7 @@ object V8ObjectUtilsBackport {
             v8Value is V8ArrayBuffer -> ArrayBuffer(v8Value.backingStore)
             v8Value is V8TypedArray -> toTypedArray(v8Value)
             v8Value is V8Array -> V8ObjectUtils.toList(v8Value)
-            v8Value is V8Object -> V8ObjectUtils.toMap(v8Value as V8Object)
+            v8Value is V8Object -> V8ObjectUtils.toMap(v8Value)
             /* real implementation return V8.getUndefined() */
             else -> "{unknown value}: " + v8Value
         }

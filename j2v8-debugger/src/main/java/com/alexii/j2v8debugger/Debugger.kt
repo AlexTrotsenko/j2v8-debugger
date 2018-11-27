@@ -5,7 +5,7 @@ import com.alexii.j2v8debugger.utils.LogUtils
 import com.alexii.j2v8debugger.utils.logger
 import com.eclipsesource.v8.Releasable
 import com.eclipsesource.v8.V8Object
-import com.eclipsesource.v8.V8ObjectUtilsBackport
+import com.alexii.j2v8backport.V8ObjectUtilsBackport
 import com.eclipsesource.v8.V8Value
 import com.eclipsesource.v8.debug.*
 import com.eclipsesource.v8.debug.mirror.Frame
