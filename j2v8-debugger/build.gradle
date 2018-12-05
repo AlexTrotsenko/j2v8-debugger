@@ -35,9 +35,6 @@ android {
 }
 
 dependencies {
-    def mockkVersion = '1.8.7'
-    def robolectricVersion = '4.0-alpha-3'
-
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     //xxx: remove when latest J2V8 version (4.8+) will be released on Mac and Windows:
@@ -57,6 +54,7 @@ dependencies {
     implementation 'com.android.support:support-annotations:28.0.0'
 
     testImplementation 'junit:junit:4.12'
+    //todo replace old Mockito tests with MockK
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "com.nhaarman:mockito-kotlin:1.5.0"
     testImplementation 'com.google.guava:guava:26.0-android'
