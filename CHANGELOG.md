@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+Version 0.2.0
+----------------------------
+* Updated V8 to 6.1.0
+* Replaced DebugHandler with V8Inspector
+* Removed backport (for v8 version below 4.8)
+
 Version 0.1.2
 ----------------------------
 * Fixed not working debugger on older then 4.8 version of j2v8: separate j2v8backport module is created with j2v8 v4.6.0 as dependency.

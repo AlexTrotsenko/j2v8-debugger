@@ -1,97 +1,145 @@
 package com.alexii.j2v8debugger
 
-import com.alexii.j2v8debugger.utils.logger
-import com.eclipsesource.v8.debug.DebugHandler
 import com.facebook.stetho.json.ObjectMapper
 import com.google.common.util.concurrent.MoreExecutors
-import com.nhaarman.mockito_kotlin.*
+import io.mockk.Runs
+import io.mockk.called
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
+import io.mockk.slot
+import io.mockk.verify
 import org.json.JSONObject
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
-import org.junit.BeforeClass
-import org.junit.Test
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
+import java.util.UUID
+import kotlin.random.Random
 
 class DebuggerTest {
-    companion object {
-        @BeforeClass
-        @JvmStatic
-        fun setUpClass() {
-            logger = mock()
-        }
-    }
 
     @Test
     fun `on enable all scripts retrieved`() {
-        val scriptSourceProviderMock = mock<ScriptSourceProvider> {}
+        val scriptSourceProviderMock = mockk<ScriptSourceProvider> (relaxed = true)
         val debugger = Debugger(scriptSourceProviderMock)
 
-        debugger.enable(mock(), null)
+        debugger.enable(mockk(relaxed = true), null)
 
-        verify(scriptSourceProviderMock, times(1)).allScriptIds
-        verifyNoMoreInteractions(scriptSourceProviderMock)
+        verify(exactly = 1) {
+            scriptSourceProviderMock.allScriptIds
+        }
     }
 
     //todo test all @ChromeDevtoolsMethod
 
     @Test
     fun `works when V8 initialized`() {
-        val v8DebugHandlerMock = mock<DebugHandler>()
-        val scriptSourceProviderMock = mock<ScriptSourceProvider> {}
         val directExecutor = MoreExecutors.newDirectExecutorService()
 
-        val debugger = Debugger(scriptSourceProviderMock)
-        debugger.initialize(v8DebugHandlerMock, directExecutor)
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk(relaxed = true))
+        debugger.initialize(directExecutor, v8Messenger)
 
-        verify(v8DebugHandlerMock).addBreakHandler(any())
-
-
-        val requestStub = Debugger.SetBreakpointByUrlRequest()
+        val requestStub = SetBreakpointByUrlRequest()
         requestStub.url = "testUrl"
-        requestStub.lineNumber = 0;
-        requestStub.columnNumber = 0
+        requestStub.lineNumber = Random(100).nextInt()
+        requestStub.columnNumber = Random(100).nextInt()
 
-        val jsonParamsMock = mock<JSONObject>()
-        val mapperMock = mock<ObjectMapper> {
-            on { convertValue(eq(jsonParamsMock), eq(requestStub::class.java)) } doReturn requestStub
+        val jsonParams = JSONObject()
+        val jsonMappedResult = JSONObject()
+        val mapperMock = mockk<ObjectMapper>(relaxed = true) {
+            every { convertValue(jsonParams, eq(SetBreakpointByUrlRequest::class.java)) } returns  requestStub
+            every { convertValue(requestStub, eq(JSONObject::class.java)) } returns jsonMappedResult
         }
         debugger.dtoMapper = mapperMock
 
-        val response = debugger.setBreakpointByUrl(mock(), jsonParamsMock)
+        val response = debugger.setBreakpointByUrl(mockk(), jsonParams)
 
-        verify(mapperMock, times(1)).convertValue(eq(jsonParamsMock), eq(requestStub::class.java))
-        verifyNoMoreInteractions(mapperMock)
+        verify (exactly = 1){mapperMock.convertValue(eq(jsonParams), eq(requestStub::class.java))}
 
-        verify(v8DebugHandlerMock).setScriptBreakpoint(eq(requestStub.scriptId), eq(requestStub.lineNumber!!))
-        verifyNoMoreInteractions(v8DebugHandlerMock)
+        verify { v8Messenger.sendMessage(message = Protocol.Debugger.SetBreakpointByUrl, params = jsonMappedResult, runOnlyWhenPaused = any()) }
 
-        assertTrue(response is Debugger.SetBreakpointByUrlResponse)
-        val responseLocation: Debugger.Location = (response as Debugger.SetBreakpointByUrlResponse).locations[0]
+        assertTrue(response is SetBreakpointByUrlResponse)
+        val responseLocation: Location = (response as SetBreakpointByUrlResponse).locations[0]
 
         assertEquals(requestStub.scriptId, responseLocation.scriptId)
-        assertEquals(requestStub.lineNumber, responseLocation.lineNumber)
-        assertEquals(requestStub.columnNumber, responseLocation.columnNumber)
+        val lineNumber = requestStub.lineNumber
+        val columnNumber = requestStub.columnNumber
+        assertEquals(lineNumber, responseLocation.lineNumber)
+        assertEquals(columnNumber, responseLocation.columnNumber)
     }
 
     @Test
     fun `No exceptions thrown when V8 not initialized`() {
-        val scriptSourceProviderMock = mock<ScriptSourceProvider> {}
-        val debugger = Debugger(scriptSourceProviderMock)
+        val debugger = Debugger(mockk())
 
 
-        val requestMock = mock<Debugger.SetBreakpointByUrlRequest>()
-        val jsonParamsMock = mock<JSONObject>()
-        val mapperMock = mock<ObjectMapper> {
-            on { convertValue(eq(jsonParamsMock), eq(requestMock::class.java)) } doReturn requestMock
+        val requestMock = mockk<SetBreakpointByUrlRequest>()
+        val jsonParamsMock = mockk<JSONObject>()
+        val mapperMock = mockk<ObjectMapper> {
+            every { convertValue(eq(jsonParamsMock), eq(requestMock::class.java)) } returns requestMock
         }
         debugger.dtoMapper = mapperMock
 
-        val response = debugger.setBreakpointByUrl(mock(), jsonParamsMock)
+        val response = debugger.setBreakpointByUrl(mockk(), jsonParamsMock)
 
-        verifyZeroInteractions(mapperMock)
-        verifyZeroInteractions(requestMock)
-        verifyZeroInteractions(jsonParamsMock)
+        verify {mapperMock wasNot called}
+        verify {requestMock wasNot called}
+        verify {jsonParamsMock wasNot called}
 
         assertTrue(response == null)
     }
 
+    @Test
+    fun `evaluateOnCallFrame gets V8Result`(){
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
+        val jsonParamsMock = mockk<JSONObject>()
+        val jsonResult = JSONObject().put(UUID.randomUUID().toString(), UUID.randomUUID().toString())
+
+        every {
+            v8Messenger.getV8Result(Protocol.Debugger.EvaluateOnCallFrame, jsonParamsMock)
+        }.returns(jsonResult.toString())
+
+
+        val response = debugger.evaluateOnCallFrame(mockk(), jsonParamsMock)
+
+        assertEquals((response as EvaluateOnCallFrameResult).result.toString(), jsonResult.toString())
+    }
+
+    @Test
+    fun `setSkipAllPauses replaces skip with skipped`(){
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(mockk())
+        debugger.initialize(mockk(), v8Messenger)
+        val jsonResult = slot<JSONObject>()
+        every {
+            v8Messenger.sendMessage(message = Protocol.Debugger.SetSkipAllPauses, params = capture(jsonResult), runOnlyWhenPaused = any())
+        } just Runs
+
+        debugger.setSkipAllPauses(mockk(), JSONObject().put("skipped", true))
+
+        assertEquals(jsonResult.captured.getBoolean("skip"), true)
+    }
+
+    @Test
+    fun `getScriptSource returns result from scriptSourceProvider`(){
+        val directExecutor = MoreExecutors.newDirectExecutorService()
+        val scriptId = UUID.randomUUID().toString()
+        val scriptSourceProvider = mockk<ScriptSourceProvider>()
+        val v8Messenger = mockk<V8Messenger>(relaxed = true)
+        val debugger = Debugger(scriptSourceProvider)
+        debugger.initialize(directExecutor, v8Messenger)
+        val requestJson = JSONObject().put("scriptId", scriptId)
+        val scriptResponse = UUID.randomUUID().toString()
+
+        every{
+            scriptSourceProvider.getSource(scriptId)
+        }.returns(scriptResponse)
+
+        val result = debugger.getScriptSource(mockk(), requestJson)
+
+        assertEquals((result as GetScriptSourceResponse).scriptSource, scriptResponse)
+    }
 }
