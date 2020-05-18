@@ -53,7 +53,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             if (v8MessageQueue.any()) {
                 for ((k, v) in v8MessageQueue) {
                     logger.d(TAG, "Sending v8 $k with $v")
-                    dispatchMessage(k, v.toString())
+                    dispatchMessage(k, v)
                 }
                 v8MessageQueue.clear()
             }
@@ -142,7 +142,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         if (debuggerState == DebuggerState.Paused) {
             v8MessageQueue[message] = params
         } else if (!runOnlyWhenPaused) {
-            dispatchMessage(message, params.toString())
+            dispatchMessage(message, params)
         }
     }
 
@@ -157,7 +157,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
      * Pass message to J2V8
      * If we're awaiting a response in the pendingMessageQueue, use the Id and set to pending
      */
-    private fun dispatchMessage(method: String, params: String? = null) {
+    private fun dispatchMessage(method: String, params: JSONObject? = null) {
         val messageId: Int
         val pendingMessage = pendingMessageQueue.firstOrNull { msg -> msg.method == method && !msg.pending }
         if (pendingMessage != null) {
@@ -166,9 +166,12 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         } else {
             messageId = nextDispatchId.incrementAndGet()
         }
-        val message = "{\"id\":$messageId,\"method\":\"$method\", \"params\": ${params ?: "{}"}}"
+        val message = JSONObject()
+            .put("id",messageId)
+            .put("method",method)
+            .put("params",params)
         logger.d(TAG, "dispatching $message")
-        v8Inspector?.dispatchProtocolMessage(message)
+        v8Inspector?.dispatchProtocolMessage(message.toString())
     }
 
     /**

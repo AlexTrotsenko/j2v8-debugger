@@ -41,7 +41,6 @@ object StethoHelper {
         val initializer = Stetho.newInitializerBuilder(context)
             .enableDumpapp(Stetho.defaultDumperPluginsProvider(context))
             .enableWebKitInspector(defaultInspectorModulesProvider(context, scriptSourceProvider))
-
             .build()
         Stetho.initialize(initializer)
     }

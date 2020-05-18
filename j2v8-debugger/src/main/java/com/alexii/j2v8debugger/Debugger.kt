@@ -15,7 +15,6 @@ import com.facebook.stetho.inspector.protocol.module.Debugger as FacebookDebugge
 /**
  * Debugger Domain. Name of the class and methods must match names defined in Chrome Dev Tools protocol.
  */
-@Suppress("UNUSED_PARAMETER", "unused")
 internal class Debugger(
     private val scriptSourceProvider: ScriptSourceProvider
 ) : FacebookDebuggerStub() {
@@ -42,6 +41,25 @@ internal class Debugger(
         }
     }
 
+    internal fun onScriptsChanged() {
+        scriptSourceProvider.allScriptIds
+            .map { ScriptParsedEvent(it) }
+            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
+    }
+
+    @ChromeDevtoolsMethod
+    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
+        runStethoSafely {
+            connectedPeer = peer
+
+            // Notify DevTools of scripts we want to display/debug
+            onScriptsChanged()
+
+            peer.registerDisconnectReceiver(::onDisconnect)
+        }
+        v8Messenger?.setDebuggerConnected(true)
+    }
+
     private fun onDisconnect() {
         logger.d(TAG, "Disconnecting from Chrome")
         runStethoSafely {
@@ -64,26 +82,7 @@ internal class Debugger(
         }
     }
 
-    internal fun onScriptsChanged() {
-        scriptSourceProvider.allScriptIds
-            .map { ScriptParsedEvent(it) }
-            .forEach { connectedPeer?.invokeMethod(Protocol.Debugger.ScriptParsed, it, null) }
-    }
-
-    @ChromeDevtoolsMethod
-    override fun enable(peer: JsonRpcPeer, params: JSONObject?) {
-        runStethoSafely {
-            connectedPeer = peer
-
-            // Notify DevTools of scripts we want to display/debug
-            onScriptsChanged()
-
-            // avoid app being freezed when no debugging happening anymore
-            v8Messenger?.setDebuggerConnected(false)
-        }
-        v8Messenger?.setDebuggerConnected(true)
-    }
-
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun evaluateOnCallFrame(peer: JsonRpcPeer, params: JSONObject?): JsonRpcResult? {
         val method = Protocol.Debugger.EvaluateOnCallFrame
@@ -91,6 +90,7 @@ internal class Debugger(
         return EvaluateOnCallFrameResult(JSONObject(result))
     }
 
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun setSkipAllPauses(peer: JsonRpcPeer, params: JSONObject?) {
         // This was changed from skipped to skip
@@ -103,6 +103,7 @@ internal class Debugger(
         v8Messenger?.setDebuggerConnected(false)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun getScriptSource(peer: JsonRpcPeer, params: JSONObject): JsonRpcResult? {
         return runStethoAndV8Safely {
@@ -117,6 +118,8 @@ internal class Debugger(
             }
         }
     }
+
+    @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
         return runStethoAndV8Safely {
@@ -138,6 +141,7 @@ internal class Debugger(
         }
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
         //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
@@ -153,13 +157,7 @@ internal class Debugger(
         breakpointsAdded.remove(params.getString("breakpointId"))
     }
 
-    @ChromeDevtoolsMethod
-    fun setAsyncCallStackDepth(peer: JsonRpcPeer, params: JSONObject) {
-        runStethoAndV8Safely {
-            v8Executor?.execute { v8Messenger?.sendMessage(Protocol.Debugger.SetAsyncCallStackDepth, params) }
-        }
-    }
-
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun setBreakpointsActive(peer: JsonRpcPeer, params: JSONObject) {
         runStethoAndV8Safely {
@@ -171,26 +169,31 @@ internal class Debugger(
     /**
      * Pass through to J2V8 methods
      */
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun resume(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.Resume, params, true)
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun pause(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.Pause, params, true)
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepOver(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.StepOver, params, true)
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepInto(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.StepInto, params, true)
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun stepOut(peer: JsonRpcPeer, params: JSONObject?) {
         v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params, true)

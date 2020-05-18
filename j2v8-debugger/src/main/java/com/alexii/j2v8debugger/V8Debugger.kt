@@ -8,6 +8,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 
 object V8Debugger {
+    private const val MAX_SCRIPT_CACHE_SIZE = 10000000
+    private const val MAX_DEPTH = 32
+
     /**
      * Utility, which simplifies configuring V8 for debugging support and creation of new instance.
      * Creates V8 runtime, v8 debugger and binds it to Stetho.
@@ -26,9 +29,8 @@ object V8Debugger {
                 // Default Chrome DevTool protocol messages
                 sendMessage(Protocol.Runtime.Enable)
 
-                sendMessage(Protocol.Debugger.Enable, JSONObject().put("maxScriptsCacheSize", 10000000))
-                sendMessage(Protocol.Debugger.SetPauseOnExceptions, JSONObject().put("state", "none"))
-                sendMessage(Protocol.Debugger.SetAsyncCallStackDepth, JSONObject().put("maxDepth",32))
+                sendMessage(Protocol.Debugger.Enable, JSONObject().put("maxScriptsCacheSize", MAX_SCRIPT_CACHE_SIZE))
+                sendMessage(Protocol.Debugger.SetAsyncCallStackDepth, JSONObject().put("maxDepth", MAX_DEPTH))
                 sendMessage(Protocol.Runtime.RunIfWaitingForDebugger)
             }
 
