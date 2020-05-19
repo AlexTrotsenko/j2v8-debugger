@@ -1,1 +1,1 @@
-include ':j2v8-debugger-sample', ':j2v8-debugger', ':j2v8backport'
+include ':j2v8-debugger-sample', ':j2v8-debugger'

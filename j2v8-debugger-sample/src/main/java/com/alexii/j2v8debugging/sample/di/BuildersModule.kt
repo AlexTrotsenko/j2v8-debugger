@@ -1,6 +1,5 @@
 package com.alexii.j2v8debugging.sample.di
 
-
 import com.alexii.j2v8debugging.sample.ExampleActivity
 
 import dagger.Module

@@ -23,7 +23,7 @@ class AppModule {
         fun provideContext(application: App): Context
 
         @Binds
-        fun provideSimpleScriptProvider(booksRepositoryImpl: SimpleScriptProvider): ScriptSourceProvider
+        fun provideSimpleScriptProvider(simpleScriptProvider: SimpleScriptProvider): ScriptSourceProvider
     }
 
     @Singleton
