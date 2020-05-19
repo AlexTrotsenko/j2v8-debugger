@@ -33,6 +33,10 @@ dependencies {
 }
 ```
 
+**Note:** current `j2v8-debugger` version is designed for `J2V8` version _6.1+_.
+
+Use [0.1.2](https://github.com/AlexTrotsenko/j2v8-debugger/tree/0.1.2) when debugging of older J2V8 _(4.6.0+)_ is required.  
+
 ## Usage
 
 `StethoHelper` and `V8Debugger` are used for set-up of Chrome DevTools and V8 for debugging.
