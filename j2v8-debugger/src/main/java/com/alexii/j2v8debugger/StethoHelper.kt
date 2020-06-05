@@ -121,21 +121,18 @@ object StethoHelper {
     }
 
     private fun bindV8ToChromeDebuggerIfReady() {
-        val chromeDebuggerAttached = debugger != null && runtime != null
-
         val v8Messenger = v8MessengerRef?.get()
         val v8Executor = v8ExecutorRef?.get()
+        val chromeDebuggerAttached = debugger != null && runtime != null
 
-        if (v8Messenger != null && v8Executor != null && chromeDebuggerAttached) {
-            v8Executor.execute {
-                bindV8DebuggerToChromeDebugger(
-                    debugger!!,
-                    runtime!!,
-                    v8Executor,
-                    v8Messenger
-                )
-            }
-        }
+        if (v8Messenger == null || v8Executor == null || !chromeDebuggerAttached) return
+
+        bindV8DebuggerToChromeDebugger(
+            debugger!!,
+            runtime!!,
+            v8Executor,
+            v8Messenger
+        )
     }
 
     /**

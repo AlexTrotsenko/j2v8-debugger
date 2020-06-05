@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+Version 0.2.1
+----------------------------
+* fixed unnecessary v8Executor.execute() in StethoHelper.bindV8ToChromeDebuggerIfReady() 
+
 Version 0.2.0
 ----------------------------
 * Updated V8 to 6.1.0

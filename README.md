@@ -26,7 +26,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.0') // {
+    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.1') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
