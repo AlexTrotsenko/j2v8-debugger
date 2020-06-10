@@ -73,11 +73,6 @@ Later v8 executor will be passed to Chrome DevTools and used for performing debu
 
 If Guava is already used in project - MoreExecutors and [ListenableFuture](https://github.com/google/guava/wiki/ListenableFutureExplained) could be handy.
 
-### Known issues
-- It's not possible to set break-point while debugging in progress.
-
- Reason: Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
- 
 ### License
 
 ```

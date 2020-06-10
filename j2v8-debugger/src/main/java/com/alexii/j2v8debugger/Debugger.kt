@@ -122,30 +122,25 @@ internal class Debugger(
     @Suppress("UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun setBreakpointByUrl(peer: JsonRpcPeer, params: JSONObject): SetBreakpointByUrlResponse? {
-        return runStethoAndV8Safely {
-            val responseFuture = v8Executor?.submit(Callable {
-                val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
-                request.url = request.scriptId
+        val request = dtoMapper.convertValue(params, SetBreakpointByUrlRequest::class.java)
+        request.url = request.scriptId
+        runStethoAndV8Safely {
+            v8Executor?.execute {
                 v8Messenger?.sendMessage(
                     Protocol.Debugger.SetBreakpointByUrl,
                     dtoMapper.convertValue(request, JSONObject::class.java)
                 )
-                val response = SetBreakpointByUrlResponse(request)
-                // Save breakpoint to remove on disconnect
-                breakpointsAdded.add(response.breakpointId)
-
-                response
-            })
-
-            responseFuture?.get()
+            }
         }
+        val response = SetBreakpointByUrlResponse(request)
+        // Save breakpoint to remove on disconnect
+        breakpointsAdded.add(response.breakpointId)
+        return response
     }
 
     @Suppress("unused", "UNUSED_PARAMETER")
     @ChromeDevtoolsMethod
     fun removeBreakpoint(peer: JsonRpcPeer, params: JSONObject) {
-        //Chrome DevTools are removing breakpoint from UI regardless of the response (unlike setting breakpoint):
-        // -> do best effort to remove breakpoint when executor is free
         runStethoAndV8Safely {
             v8Executor?.execute {
                 v8Messenger?.sendMessage(
