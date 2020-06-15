@@ -26,7 +26,7 @@ allprojects {
 Add dependency in *gradle.build* file of your app module
 ```gradle
 dependencies {
-    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.1') // {
+    implementation ('com.github.AlexTrotsenko:j2v8-debugger:0.2.2') // {
     //     optionally J2V8 can be excluded if specific version of j2v8 is needed or defined by other libs
     //     exclude group: 'com.eclipsesource.j2v8'
     // }
@@ -73,11 +73,6 @@ Later v8 executor will be passed to Chrome DevTools and used for performing debu
 
 If Guava is already used in project - MoreExecutors and [ListenableFuture](https://github.com/google/guava/wiki/ListenableFutureExplained) could be handy.
 
-### Known issues
-- It's not possible to set break-point while debugging in progress.
-
- Reason: Since V8 thread is suspended - setting new breakpoint is not possible as it must run on the same V8 thread.
- 
 ### License
 
 ```
