@@ -100,14 +100,20 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     }
 
     private fun handleDebuggerResumedEvent() {
-        debuggerState = DebuggerState.Connected
+        if (debuggerState == DebuggerState.Paused) {
+            debuggerState = DebuggerState.Connected
+        }
     }
 
     private fun handleDebuggerPausedEvent(responseParams: JSONObject?, responseMethod: String?) {
-        if (responseParams != null) {
-            debuggerState = DebuggerState.Paused
-            val updatedScript = replaceScriptId(responseParams, v8ScriptMap)
-            chromeMessageQueue[responseMethod] = updatedScript
+        if (debuggerState == DebuggerState.Disconnected){
+            dispatchMessage(Protocol.Debugger.Resume)
+        } else {
+            if (responseParams != null) {
+                debuggerState = DebuggerState.Paused
+                val updatedScript = replaceScriptId(responseParams, v8ScriptMap)
+                chromeMessageQueue[responseMethod] = updatedScript
+            }
         }
     }
 
