@@ -61,9 +61,14 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             // Check for messages to send to Chrome DevTools
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                for ((k, v) in chromeMessageQueue) {
-                    logger.d(TAG, "Sending chrome $k with $v")
-                    networkPeerManager?.sendNotificationToPeers(k, v)
+                if (networkPeerManager?.hasRegisteredPeers() != true){
+                    // We can't send messages to chrome if it's not attached (networkPeerManager null) so resume debugger
+                    dispatchMessage(Protocol.Debugger.Resume)
+                } else {
+                    for ((k, v) in chromeMessageQueue) {
+                        logger.d(TAG, "Sending chrome $k with $v")
+                        networkPeerManager.sendNotificationToPeers(k, v)
+                    }
                 }
                 chromeMessageQueue.clear()
             }
@@ -119,17 +124,19 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
      * to the Chrome DevTools scriptId before passing it through
      */
     private fun handleBreakpointResolvedEvent(responseParams: JSONObject?, responseMethod: String?) {
-        val breakpointResolvedEvent = dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
+        val breakpointResolvedEvent =
+            dtoMapper.convertValue(responseParams, BreakpointResolvedEvent::class.java)
         val location = breakpointResolvedEvent.location
-        val response = BreakpointResolvedEvent().also {
-            it.breakpointId = breakpointResolvedEvent.breakpointId
-            it.location = LocationResponse().also {
-                it.scriptId = v8ScriptMap[location?.scriptId]
-                it.lineNumber = location?.lineNumber
-                it.columnNumber = location?.columnNumber
+        val response = BreakpointResolvedEvent().also { resolvedEvent ->
+            resolvedEvent.breakpointId = breakpointResolvedEvent.breakpointId
+            resolvedEvent.location = LocationResponse().also { locationResponse ->
+                locationResponse.scriptId = v8ScriptMap[location?.scriptId]
+                locationResponse.lineNumber = location?.lineNumber
+                locationResponse.columnNumber = location?.columnNumber
             }
         }
-        chromeMessageQueue[responseMethod] = dtoMapper.convertValue(response, JSONObject::class.java)
+        chromeMessageQueue[responseMethod] =
+            dtoMapper.convertValue(response, JSONObject::class.java)
     }
 
     /**
