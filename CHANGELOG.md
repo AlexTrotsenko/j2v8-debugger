@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+Version 0.2.3
+----------------------------
+* Check if debugger has DevTools connection before sending messages from J2V8.  If not, resume debugger (prevents getting stuck in paused state).
+
 Version 0.2.2
 ----------------------------
 * Setting breakpoints during debugging (paused) doesn't kill DevTools.  Next execution will pick up breakpoint.
