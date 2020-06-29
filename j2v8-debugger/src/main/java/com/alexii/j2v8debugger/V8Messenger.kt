@@ -61,14 +61,14 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
             // Check for messages to send to Chrome DevTools
             if (chromeMessageQueue.any()) {
                 val networkPeerManager = NetworkPeerManager.getInstanceOrNull()
-                if (networkPeerManager?.hasRegisteredPeers() != true){
-                    // We can't send messages to chrome if it's not attached (networkPeerManager null) so resume debugger
-                    dispatchMessage(Protocol.Debugger.Resume)
-                } else {
+                if (networkPeerManager?.hasRegisteredPeers() == true) {
                     for ((k, v) in chromeMessageQueue) {
                         logger.d(TAG, "Sending chrome $k with $v")
                         networkPeerManager.sendNotificationToPeers(k, v)
                     }
+                } else {
+                    // We can't send messages to chrome if it's not attached (networkPeerManager null) so resume debugger
+                    dispatchMessage(Protocol.Debugger.Resume)
                 }
                 chromeMessageQueue.clear()
             }
