@@ -194,6 +194,14 @@ internal class Debugger(
         v8Messenger?.sendMessage(Protocol.Debugger.StepOut, params, true)
     }
 
+    @Suppress("unused", "UNUSED_PARAMETER")
+    @ChromeDevtoolsMethod
+    fun setScriptSource(peer: JsonRpcPeer, params: JSONObject) {
+        runStethoAndV8Safely {
+            v8Executor?.execute { v8Messenger?.setScriptSource(Protocol.Debugger.SetScriptSource, params) }
+        }
+    }
+
     /**
      *  Safe for Stetho - makes sure that no exception is thrown.
      * If any exception then [JsonRpcError] is thrown from method annotated with @ChromeDevtoolsMethod-

@@ -23,6 +23,7 @@ object Protocol {
         val StepInto = "$domain.stepInto"
         val StepOut = "$domain.stepOut"
         val StepOver = "$domain.stepOver"
+        val SetScriptSource = "$domain.setScriptSource"
     }
 
     /***
