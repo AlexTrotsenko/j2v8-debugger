@@ -15,6 +15,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
     private val dtoMapper: ObjectMapper = ObjectMapper()
     private val chromeMessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject>())
     private val v8ScriptMap = mutableMapOf<String, String>()
+    private val scriptUriToIdMap = HashMap<String, String>()
     private val v8MessageQueue = Collections.synchronizedMap(LinkedHashMap<String, JSONObject?>())
     private val pendingMessageQueue = Collections.synchronizedList(mutableListOf<PendingResponse>())
     private val nextDispatchId = AtomicInteger(0)
@@ -122,6 +123,7 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         if (scriptParsedEvent.url.isNotEmpty()) {
             // Get the V8 Script ID to map to the Chrome ScriptId (stored in url)
             v8ScriptMap[scriptParsedEvent.scriptId] = scriptParsedEvent.url
+            scriptUriToIdMap[scriptParsedEvent.url] = scriptParsedEvent.scriptId
         }
     }
 
@@ -157,6 +159,13 @@ class V8Messenger(v8: V8): V8InspectorDelegate {
         } else if (!runOnlyWhenPaused) {
             dispatchMessage(message, params)
         }
+    }
+
+    internal fun setScriptSource(message: String, params: JSONObject) {
+        val idKey = "scriptId"
+        // Because scriptId comes as URI from Chrome dev tools
+        val updatedParams = params.put(idKey, scriptUriToIdMap[params.getString(idKey)])
+        sendMessage(message, updatedParams)
     }
 
     /**
