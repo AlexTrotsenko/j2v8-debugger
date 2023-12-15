@@ -45,7 +45,7 @@ dependencies {
 
     // J2V8 Runtime
     api("com.eclipsesource.j2v8:j2v8:6.1.0@aar")
-    api("com.facebook.stetho:stetho:1.5.1")
+    api("com.github.yinyinnie:stetho:v1.0.0")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version")
     implementation("androidx.annotation:annotation:1.1.0")
