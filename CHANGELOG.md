@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+Version 0.2.4
+----------------------------
+* Switch from unmaintained Stetho to the maintained forked repo: https://github.com/yinyinnie/stetho
+* Allows editing JS code from Chrome dev tools
+* Fixes the states when debugger is stuck in paused state by adding some extra checks and resuming it if happens.
+
+
 Version 0.2.3
 ----------------------------
 * Check if debugger has DevTools connection before sending messages from J2V8.  If not, resume debugger (prevents getting stuck in paused state).
